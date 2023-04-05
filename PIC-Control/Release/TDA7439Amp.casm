@@ -1,0 +1,4233 @@
+;/////////////////////////////////////////////////////////////////////////////////
+;// Code Generator: BoostC Compiler - http://www.sourceboost.com
+;// Version       : 8.01
+;// License Type  : Pro License
+;// Limitations   : PIC12,PIC16 max code size:Unlimited, max RAM banks:Unlimited
+;/////////////////////////////////////////////////////////////////////////////////
+
+#ifndef _TDA7439AMP_H_
+#define _TDA7439AMP_H_
+
+#include <system.h>
+#include <stdio.h>
+//#include <i2c_driver.h>
+
+// tasks for the main routine
+#define	TASKS_LIMIT			8
+#define TASK_INT_EXT0		0
+#define TASK_INT_PORTB		4
+#define TASK_TIMER1_MUTE	5
+#define TASK_TIMER1_FUNC	6
+#define TASK_TIMER1_RSTDISP	7
+
+// define TDA7439 address
+#define	tda7439_addr	0x88 // Base address
+
+// 25 for 200us
+// 22 for 176us (doesn't work)
+// 26 works
+// 26 for 208us
+#define IR_PR2_200US 26
+// 111 for 888us
+// 105 for 840us (doesn't work)
+// 112 = no, 111 = misses last bit, 110 = works fine, but sometimes toggle bit missed, 109 = works fine
+// 109 for 872us
+#define IR_PR2_890US 108
+
+// Pins
+#define IR_PIN (portb.0)
+#define IR_LED (portb.1)
+#define RED (portc.0)
+#define GREEN (portc.1)
+#define BLUE (portc.2)
+#define RLY_POWER (portb.5)
+#define RLY_BLUETOOTH (portb.4)
+#define EXT_POWER (portb.2)
+#define LEDDATA (porta.0)
+#define LEDCLOCK (porta.2)
+#define LEDLATCH (porta.1)
+#define LEDDISPON (portb.3) // v3.0 added this to control power Vss to MAX7219 - high = display on
+
+#define LEDDELAYUS 30
+
+// 6dB gain except for bluetooth
+// order in3, in3, in2, in1
+const char tda7439_gains[] = {3, 3, 3, 0}; 
+0629  3003  	MOVLW 0x03
+062A  1283  	BCF STATUS, RP0
+062B  1303  	BCF STATUS, RP1
+062C  00FB  	MOVWF gbl_tda7439_gains
+062D  3003  	MOVLW 0x03
+062E  00FC  	MOVWF gbl_tda7439_gains+D'1'
+062F  3003  	MOVLW 0x03
+0630  00FD  	MOVWF gbl_tda7439_gains+D'2'
+0631  01FE  	CLRF gbl_tda7439_gains+D'3'
+
+
+// Global variables
+char cTask = 0;
+0632  1683  	BSF STATUS, RP0
+0633  01AD  	CLRF gbl_cTask
+
+char iPower = 0;
+0634  01AE  	CLRF gbl_iPower
+
+char iPowerExternal = 0;
+0635  01AF  	CLRF gbl_iPowerExternal
+
+char iActiveInput = 1;
+0636  3001  	MOVLW 0x01
+0637  00B0  	MOVWF gbl_iActiveInput
+
+char iVolume = 55;
+0638  3037  	MOVLW 0x37
+0639  00B1  	MOVWF gbl_iVolume
+
+char iVolumeAfterMute;
+char iMute = 0;
+063A  01B2  	CLRF gbl_iMute
+
+char iMuteHeld = 0;
+063B  01B3  	CLRF gbl_iMuteHeld
+
+char iAttenuateL = 0;
+063C  01B4  	CLRF gbl_iAttenuateL
+
+char iAttenuateR = 0;
+063D  01B5  	CLRF gbl_iAttenuateR
+
+char iBass = 7;
+063E  3007  	MOVLW 0x07
+063F  00B6  	MOVWF gbl_iBass
+
+char iMid = 7;
+0640  3007  	MOVLW 0x07
+0641  00B7  	MOVWF gbl_iMid
+
+char iTreble = 7;
+0642  3007  	MOVLW 0x07
+0643  00B8  	MOVWF gbl_iTreble
+
+
+char iFunctionMode = 0;
+0644  01B9  	CLRF gbl_iFunctionMode
+
+
+char ledData1[8];
+// Original table
+/***************************************************************************************
+
+Characters:
+    7 6 5 4  3 2 1 0
+    p a b c  d e f g
+  = 0 0 0 0  0 0 0 0  00
+0 = 0 1 1 1  1 1 1 0  7E
+1 = 0 0 1 1  0 0 0 0  30
+2 = 0 1 1 0  1 1 0 1  6D
+3 = 0 1 1 1  1 0 0 1  79
+4 = 0 0 1 1  0 0 1 1  33
+5 = 0 1 0 1  1 0 1 1  5B
+6 = 0 1 0 1  1 1 1 1  5F
+7 = 0 1 1 1  0 0 0 0  70
+8 = 0 1 1 1  1 1 1 1  7F
+9 = 0 1 1 1  1 0 1 1  7B
+- = 0 0 0 0  0 0 0 1  01
+
+A = 0 1 1 1  0 1 1 1  77
+b = 0 0 0 1  1 1 1 1  1F
+c = 0 0 0 0  1 1 0 1  0D
+d = 0 0 1 1  1 1 0 1  3D
+E = 0 1 0 0  1 1 1 1  4F
+F = 0 1 0 0  0 1 1 1  47
+g = 0 1 1 1  1 0 1 1  7B
+h = 0 0 0 1  0 1 1 1  17
+H = 0 0 1 1  0 1 1 1  37
+i = 0 0 0 1  0 0 0 0  10
+L = 0 0 0 0  1 1 1 0  0E
+o = 0 0 0 1  1 1 0 1  1D
+P = 0 1 1 0  0 1 1 1  67
+r = 0 0 0 0  0 1 0 1  05
+S = 0 1 0 1  1 0 1 1  5B
+T = 0 1 0 0  0 1 1 0  46
+t = 0 0 0 0  1 1 1 1  0F
+u = 0 0 0 1  1 1 0 0  1C
+y = 0 0 1 1  0 0 1 1  33
+
+**************************************************************************************/
+
+
+// This table, taken from http://www.ccsinfo.com/forum/viewtopic.php?p=57034 is ideal for writing the converted character out
+// However as the dot is the MSB for the MAX7219 when writing, bit shift 1 to the right
+// Converted using spreadsheet formula ="0x"&RIGHT("0"&DEC2HEX(BITRSHIFT(HEX2DEC(RIGHT(A1,2)),1)),2)
+// Modification - capital T output differently
+const char displayASCIItoSeg[] = {// ASCII to SEVEN-SEGMENT conversion table
+    0x00,       // ' ', 
+0645  1283  	BCF STATUS, RP0
+0646  01A0  	CLRF gbl_displayASCIItoSeg
+
+    0x00,       // '!', No seven-segment conversion for exclamation point
+0647  01A1  	CLRF gbl_displayASCIItoSeg+D'1'
+
+    0x22,       // '"', Double quote
+0648  3022  	MOVLW 0x22
+0649  00A2  	MOVWF gbl_displayASCIItoSeg+D'2'
+
+    0x00,       // '#', Pound sign
+064A  01A3  	CLRF gbl_displayASCIItoSeg+D'3'
+
+    0x00,       // '$', No seven-segment conversion for dollar sign
+064B  01A4  	CLRF gbl_displayASCIItoSeg+D'4'
+
+    0x00,       // '%', No seven-segment conversion for percent sign
+064C  01A5  	CLRF gbl_displayASCIItoSeg+D'5'
+
+    0x00,       // '&', No seven-segment conversion for ampersand
+064D  01A6  	CLRF gbl_displayASCIItoSeg+D'6'
+
+    0x20,       // ''', Single quote
+064E  3020  	MOVLW 0x20
+064F  00A7  	MOVWF gbl_displayASCIItoSeg+D'7'
+
+    0x4E,       // '(', Same as '['
+0650  304E  	MOVLW 0x4E
+0651  00A8  	MOVWF gbl_displayASCIItoSeg+D'8'
+
+    0x78,       // ')', Same as ']'
+0652  3078  	MOVLW 0x78
+0653  00A9  	MOVWF gbl_displayASCIItoSeg+D'9'
+
+    0x00,       // '*', No seven-segment conversion for asterix
+0654  01AA  	CLRF gbl_displayASCIItoSeg+D'10'
+
+    0x00,       // '+', No seven-segment conversion for plus sign
+0655  01AB  	CLRF gbl_displayASCIItoSeg+D'11'
+
+    0x00,       // ', '
+0656  01AC  	CLRF gbl_displayASCIItoSeg+D'12'
+
+    0x01,       // '-', Minus sign
+0657  3001  	MOVLW 0x01
+0658  00AD  	MOVWF gbl_displayASCIItoSeg+D'13'
+
+    0x00,       // '.', No seven-segment conversion for period
+0659  01AE  	CLRF gbl_displayASCIItoSeg+D'14'
+
+    0x00,       // '/', No seven-segment conversion for slash
+065A  01AF  	CLRF gbl_displayASCIItoSeg+D'15'
+
+    0x7E,       // '0', 
+065B  307E  	MOVLW 0x7E
+065C  00B0  	MOVWF gbl_displayASCIItoSeg+D'16'
+
+    0x30,       // '1', 
+065D  3030  	MOVLW 0x30
+065E  00B1  	MOVWF gbl_displayASCIItoSeg+D'17'
+
+    0x6D,       // '2', 
+065F  306D  	MOVLW 0x6D
+0660  00B2  	MOVWF gbl_displayASCIItoSeg+D'18'
+
+    0x79,       // '3', 
+0661  3079  	MOVLW 0x79
+0662  00B3  	MOVWF gbl_displayASCIItoSeg+D'19'
+
+    0x33,       // '4', 
+0663  3033  	MOVLW 0x33
+0664  00B4  	MOVWF gbl_displayASCIItoSeg+D'20'
+
+    0x5B,       // '5', 
+0665  305B  	MOVLW 0x5B
+0666  00B5  	MOVWF gbl_displayASCIItoSeg+D'21'
+
+    0x5F,       // '6', 
+0667  305F  	MOVLW 0x5F
+0668  00B6  	MOVWF gbl_displayASCIItoSeg+D'22'
+
+    0x70,       // '7', 
+0669  3070  	MOVLW 0x70
+066A  00B7  	MOVWF gbl_displayASCIItoSeg+D'23'
+
+    0x7F,       // '8', 
+066B  307F  	MOVLW 0x7F
+066C  00B8  	MOVWF gbl_displayASCIItoSeg+D'24'
+
+    0x7B,       // '9', 
+066D  307B  	MOVLW 0x7B
+066E  00B9  	MOVWF gbl_displayASCIItoSeg+D'25'
+
+    0x00,       // ':', No seven-segment conversion for colon
+066F  01BA  	CLRF gbl_displayASCIItoSeg+D'26'
+
+    0x00,       // ';', No seven-segment conversion for semi-colon
+0670  01BB  	CLRF gbl_displayASCIItoSeg+D'27'
+
+    0x00,       // '<', No seven-segment conversion for less-than sign
+0671  01BC  	CLRF gbl_displayASCIItoSeg+D'28'
+
+    0x09,       // '=', Equal sign
+0672  3009  	MOVLW 0x09
+0673  00BD  	MOVWF gbl_displayASCIItoSeg+D'29'
+
+    0x00,       // '>', No seven-segment conversion for greater-than sign
+0674  01BE  	CLRF gbl_displayASCIItoSeg+D'30'
+
+    0x65,       //'?', Question mark
+0675  3065  	MOVLW 0x65
+0676  00BF  	MOVWF gbl_displayASCIItoSeg+D'31'
+
+    0x00,       // '@', No seven-segment conversion for commercial at-sign
+0677  01C0  	CLRF gbl_displayASCIItoSeg+D'32'
+
+    0x77,       // 'A', 
+0678  3077  	MOVLW 0x77
+0679  00C1  	MOVWF gbl_displayASCIItoSeg+D'33'
+
+    0x1F,       // 'B', Actually displayed as 'b'
+067A  301F  	MOVLW 0x1F
+067B  00C2  	MOVWF gbl_displayASCIItoSeg+D'34'
+
+    0x4E,       // 'C', 
+067C  304E  	MOVLW 0x4E
+067D  00C3  	MOVWF gbl_displayASCIItoSeg+D'35'
+
+    0x3D,       // 'D', Actually displayed as 'd'
+067E  303D  	MOVLW 0x3D
+067F  00C4  	MOVWF gbl_displayASCIItoSeg+D'36'
+
+    0x4F,       // 'E', 
+0680  304F  	MOVLW 0x4F
+0681  00C5  	MOVWF gbl_displayASCIItoSeg+D'37'
+
+    0x47,       // 'F', 
+0682  3047  	MOVLW 0x47
+0683  00C6  	MOVWF gbl_displayASCIItoSeg+D'38'
+
+    0x5E,       // 'G', Actually displayed as 'g'
+0684  305E  	MOVLW 0x5E
+0685  00C7  	MOVWF gbl_displayASCIItoSeg+D'39'
+
+    0x37,       // 'H', 
+0686  3037  	MOVLW 0x37
+0687  00C8  	MOVWF gbl_displayASCIItoSeg+D'40'
+
+    0x30,       // 'I', Same as '1'
+0688  3030  	MOVLW 0x30
+0689  00C9  	MOVWF gbl_displayASCIItoSeg+D'41'
+
+    0x3C,       // 'J', 
+068A  303C  	MOVLW 0x3C
+068B  00CA  	MOVWF gbl_displayASCIItoSeg+D'42'
+
+    0x00,       // 'K', No seven-segment conversion
+068C  01CB  	CLRF gbl_displayASCIItoSeg+D'43'
+
+    0x0E,       // 'L', 
+068D  300E  	MOVLW 0x0E
+068E  00CC  	MOVWF gbl_displayASCIItoSeg+D'44'
+
+    0x00,       // 'M', No seven-segment conversion
+068F  01CD  	CLRF gbl_displayASCIItoSeg+D'45'
+
+    0x15,       // 'N', Actually displayed as 'n'
+0690  3015  	MOVLW 0x15
+0691  00CE  	MOVWF gbl_displayASCIItoSeg+D'46'
+
+    0x7E,       // 'O', Same as '0'
+0692  307E  	MOVLW 0x7E
+0693  00CF  	MOVWF gbl_displayASCIItoSeg+D'47'
+
+    0x67,       // 'P', 
+0694  3067  	MOVLW 0x67
+0695  00D0  	MOVWF gbl_displayASCIItoSeg+D'48'
+
+    0x00,       // 'Q', No seven-segment conversion
+0696  01D1  	CLRF gbl_displayASCIItoSeg+D'49'
+
+    0x05,       // 'R', Actually displayed as 'r'
+0697  3005  	MOVLW 0x05
+0698  00D2  	MOVWF gbl_displayASCIItoSeg+D'50'
+
+    0x5B,       // 'S', Same as '5'
+0699  305B  	MOVLW 0x5B
+069A  00D3  	MOVWF gbl_displayASCIItoSeg+D'51'
+
+    0x70,       // 'T', Displayed as 7
+069B  3070  	MOVLW 0x70
+069C  00D4  	MOVWF gbl_displayASCIItoSeg+D'52'
+
+    0x3E,       // 'U', 
+069D  303E  	MOVLW 0x3E
+069E  00D5  	MOVWF gbl_displayASCIItoSeg+D'53'
+
+    0x00,       // 'V', No seven-segment conversion
+069F  01D6  	CLRF gbl_displayASCIItoSeg+D'54'
+
+    0x00,       // 'W', No seven-segment conversion
+06A0  01D7  	CLRF gbl_displayASCIItoSeg+D'55'
+
+    0x00,       // 'X', No seven-segment conversion
+06A1  01D8  	CLRF gbl_displayASCIItoSeg+D'56'
+
+    0x3B,       // 'Y', 
+06A2  303B  	MOVLW 0x3B
+06A3  00D9  	MOVWF gbl_displayASCIItoSeg+D'57'
+
+    0x00,       // 'Z', No seven-segment conversion
+06A4  01DA  	CLRF gbl_displayASCIItoSeg+D'58'
+
+    0x00,       // '[', 
+06A5  01DB  	CLRF gbl_displayASCIItoSeg+D'59'
+
+    0x00,       // '\', No seven-segment conversion
+06A6  01DC  	CLRF gbl_displayASCIItoSeg+D'60'
+
+    0x00,       // ']', 
+06A7  01DD  	CLRF gbl_displayASCIItoSeg+D'61'
+
+    0x00,       // '^', No seven-segment conversion
+06A8  01DE  	CLRF gbl_displayASCIItoSeg+D'62'
+
+    0x00,       // '_', Underscore
+06A9  01DF  	CLRF gbl_displayASCIItoSeg+D'63'
+
+    0x00,       // '`', No seven-segment conversion for reverse quote
+06AA  01E0  	CLRF gbl_displayASCIItoSeg+D'64'
+
+    0x7D,       // 'a', 
+06AB  307D  	MOVLW 0x7D
+06AC  00E1  	MOVWF gbl_displayASCIItoSeg+D'65'
+
+    0x1F,       // 'b', 
+06AD  301F  	MOVLW 0x1F
+06AE  00E2  	MOVWF gbl_displayASCIItoSeg+D'66'
+
+    0x0D,       // 'c', 
+06AF  300D  	MOVLW 0x0D
+06B0  00E3  	MOVWF gbl_displayASCIItoSeg+D'67'
+
+    0x3D,       // 'd', 
+06B1  303D  	MOVLW 0x3D
+06B2  00E4  	MOVWF gbl_displayASCIItoSeg+D'68'
+
+    0x6F,       // 'e', 
+06B3  306F  	MOVLW 0x6F
+06B4  00E5  	MOVWF gbl_displayASCIItoSeg+D'69'
+
+    0x47,       // 'f', Actually displayed as 'F'
+06B5  3047  	MOVLW 0x47
+06B6  00E6  	MOVWF gbl_displayASCIItoSeg+D'70'
+
+    0x5E,       // 'g', 
+06B7  305E  	MOVLW 0x5E
+06B8  00E7  	MOVWF gbl_displayASCIItoSeg+D'71'
+
+    0x17,       // 'h', 
+06B9  3017  	MOVLW 0x17
+06BA  00E8  	MOVWF gbl_displayASCIItoSeg+D'72'
+
+    0x10,       // 'i', 
+06BB  3010  	MOVLW 0x10
+06BC  00E9  	MOVWF gbl_displayASCIItoSeg+D'73'
+
+    0x3C,       // 'j', Actually displayed as 'J'
+06BD  303C  	MOVLW 0x3C
+06BE  00EA  	MOVWF gbl_displayASCIItoSeg+D'74'
+
+    0x00,       // 'k', No seven-segment conversion
+06BF  01EB  	CLRF gbl_displayASCIItoSeg+D'75'
+
+    0x0E,       // 'l', Actually displayed as 'L'
+06C0  300E  	MOVLW 0x0E
+06C1  00EC  	MOVWF gbl_displayASCIItoSeg+D'76'
+
+    0x00,       // 'm', No seven-segment conversion
+06C2  01ED  	CLRF gbl_displayASCIItoSeg+D'77'
+
+    0x15,       // 'n', 
+06C3  3015  	MOVLW 0x15
+06C4  00EE  	MOVWF gbl_displayASCIItoSeg+D'78'
+
+    0x1D,       // 'o', 
+06C5  301D  	MOVLW 0x1D
+06C6  00EF  	MOVWF gbl_displayASCIItoSeg+D'79'
+
+    0x67,       // 'p', Actually displayed as 'P'
+06C7  3067  	MOVLW 0x67
+06C8  00F0  	MOVWF gbl_displayASCIItoSeg+D'80'
+
+    0x00,       // 'q', No seven-segment conversion
+06C9  01F1  	CLRF gbl_displayASCIItoSeg+D'81'
+
+    0x05,       // 'r', 
+06CA  3005  	MOVLW 0x05
+06CB  00F2  	MOVWF gbl_displayASCIItoSeg+D'82'
+
+    0x5B,       // 's', Actually displayed as 'S'
+06CC  305B  	MOVLW 0x5B
+06CD  00F3  	MOVWF gbl_displayASCIItoSeg+D'83'
+
+    0x0F,       // 't', 
+06CE  300F  	MOVLW 0x0F
+06CF  00F4  	MOVWF gbl_displayASCIItoSeg+D'84'
+
+    0x1C,       // 'u', 
+06D0  301C  	MOVLW 0x1C
+06D1  00F5  	MOVWF gbl_displayASCIItoSeg+D'85'
+
+    0x00,       // 'v', No seven-segment conversion
+06D2  01F6  	CLRF gbl_displayASCIItoSeg+D'86'
+
+    0x00,       // 'w', No seven-segment conversion
+06D3  01F7  	CLRF gbl_displayASCIItoSeg+D'87'
+
+    0x00,       // 'x', No seven-segment conversion
+06D4  01F8  	CLRF gbl_displayASCIItoSeg+D'88'
+
+    0x3B,       // 'y', Actually displayed as 'Y'
+06D5  303B  	MOVLW 0x3B
+06D6  00F9  	MOVWF gbl_displayASCIItoSeg+D'89'
+
+    0x00        // 'z', No seven-segment conversion
+06D7  01FA  	CLRF gbl_displayASCIItoSeg+D'90'
+
+}; 
+
+// Methods
+void saveData();
+char eepromWrite(char address, char data);
+void readData();
+char eepromRead(char address);
+
+void ledPrint(unsigned char *s, char iWrite);
+void ledChar(char iCol, char iChar);
+void ledSetDigits(signed char iValue, char iCol);
+void ledTest();
+void ledSetup();
+void ledOn();
+void ledOff();
+void ledClear();
+void ledWrite();
+void ledSendChar(char iData);
+void ledLatchUp();
+void ledLatchDown();
+
+void doPower();
+void doMute();
+void showVolAndInput();
+
+void doVolumeUp();
+void doVolumeDown();
+void doInputUp();
+void doInputDown();
+
+void tda7439SetInput();
+void tda7439SetVolume();
+void tda7439SetBass();
+void tda7439SetMid();
+void tda7439SetTreble();
+void tda7439SetBalance();
+void tda7439WriteAll();
+
+void functionValueDisplay(char iValue);
+void functionDisplay();
+char functionValueRaise(char iValue);
+char functionValueLower(char iValue);
+void functionRaise();
+void functionLower();
+void functionUp();
+void functionDown();
+
+void onTimer1();
+void timer1Reset();
+void rc5Process();
+
+// For IR
+char intfCounter = 0;
+06D8  1683  	BSF STATUS, RP0
+06D9  01BA  	CLRF gbl_intfCounter
+
+char rc5_Held = 0;
+06DA  01BB  	CLRF gbl_rc5_Held
+
+unsigned short rc5_inputData; // input data takes 12 bits?
+char rc5_bitCount;
+char rc5_logicInterval, rc5_logicChange;
+enum {
+        rc5_idleState,
+        rc5_initialWaitState,
+        rc5_startBitState,
+        rc5_captureBitState
+};
+
+char rc5_currentState = rc5_idleState;
+06DB  01BF  	CLRF gbl_rc5_currentState
+
+char rc5_pinState = 1;
+06DC  3001  	MOVLW 0x01
+06DD  00C0  	MOVWF gbl_rc5_pinState
+
+
+char rc5_flickBit = 0;
+06DE  01C1  	CLRF gbl_rc5_flickBit
+
+char rc5_flickBitOld = 0;
+06DF  01C2  	CLRF gbl_rc5_flickBitOld
+
+char rc5_address = 0;
+06E0  01C3  	CLRF gbl_rc5_address
+
+char rc5_command = 0;
+06E1  01C4  	CLRF gbl_rc5_command
+
+
+#endif //_TDA7439AMP_H_
+
+/*****************************************************************************************************************
+ Copyright Daniel Clarke https://electro-dan.co.uk, 9th January 2021
+ Free to use and adapt but NO guarantees or support
+ For PIC16F873
+ 
+ To fix:
+ t mute hold not working - toggles mute
+ t mute not applied
+ t bluetooth power not toggled
+*****************************************************************************************************************/
+
+#include "TDA7439Amp.h"
+
+#define DELAY delay_s(2)
+#define DELAY_SHORT    delay_ms(100)
+
+// Configuration registers - PIC16F873
+#pragma DATA _CONFIG, _BODEN_OFF & _PWRTE_OFF & _WDT_OFF & _CP_OFF & _XT_OSC // Brown out reset off, Power-up Timer off, Watchdog timer off, Code Protection off, XT oscillator
+
+// Set clock frequency - 4MHz Crystal
+#pragma CLOCK_FREQ  4000000
+
+/***********************************************************************************
+  Function called once only to initialise variables and setup the PIC registers
+************************************************************************************/
+void initialise() {
+
+    // IO ports setup
+    trisa = 0x00; // all ouptuts
+0592  1683  	BSF STATUS, RP0
+0593  1303  	BCF STATUS, RP1
+0594  0185  	CLRF gbl_trisa
+
+    porta = 0x02; // set to off except LEDLATCH
+0595  3002  	MOVLW 0x02
+0596  1283  	BCF STATUS, RP0
+0597  0085  	MOVWF gbl_porta
+
+    //porta = 0x00; // set to off
+    trisb = 0x05; // RB0, RB2 are inputs
+0598  3005  	MOVLW 0x05
+0599  1683  	BSF STATUS, RP0
+059A  0086  	MOVWF gbl_trisb
+
+    portb = 0x08; // set to off, except LEDDISPON (RB3)
+059B  3008  	MOVLW 0x08
+059C  1283  	BCF STATUS, RP0
+059D  0086  	MOVWF gbl_portb
+
+    trisc = 0x18; // RC4[SDA] and RC3[SCL] are inputs (for I2C), rest outputs
+059E  3018  	MOVLW 0x18
+059F  1683  	BSF STATUS, RP0
+05A0  0087  	MOVWF gbl_trisc
+
+    portc = 0x18; // set to off, except RC4, RC3 for I2C
+05A1  1283  	BCF STATUS, RP0
+05A2  0087  	MOVWF gbl_portc
+
+
+    option_reg.NOT_RBPU = 1; // Port B pull-ups disabled
+05A3  1683  	BSF STATUS, RP0
+05A4  1781  	BSF gbl_option_reg,7
+
+    
+    // ADC setup
+    adcon0 = 0x00; //  ADC off
+05A5  1283  	BCF STATUS, RP0
+05A6  019F  	CLRF gbl_adcon0
+
+    adcon1 = 0x07; // All digital I/O
+05A7  3007  	MOVLW 0x07
+05A8  1683  	BSF STATUS, RP0
+05A9  009F  	MOVWF gbl_adcon1
+
+    
+    // Timer calculator: http://eng-serve.com/pic/pic_timer.html
+    // Timer 1 setup - interrupt every 131ms seconds 4MHz
+    // Timer1 Registers Prescaler= 2 - TMR1 Preset = 0 - Freq = 7.63 Hz - Period = 0.131072 seconds
+    t1con.T1CKPS1 = 0;   // bits 5-4  Prescaler Rate Select bits
+05AA  1283  	BCF STATUS, RP0
+05AB  1290  	BCF gbl_t1con,5
+
+    t1con.T1CKPS0 = 1;   // bit 4
+05AC  1610  	BSF gbl_t1con,4
+
+    t1con.T1OSCEN = 0;   // bit 3 Timer1 Oscillator Enable Control bit 1 = off
+05AD  1190  	BCF gbl_t1con,3
+
+    t1con.NOT_T1SYNC = 1;// bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
+05AE  1510  	BSF gbl_t1con,2
+
+    t1con.TMR1CS = 0;    // bit 1 Timer1 Clock Source Select bit...0 = Internal clock (FOSC/4)
+05AF  1090  	BCF gbl_t1con,1
+
+    t1con.TMR1ON = 0;    // bit 0 enables timer
+05B0  1010  	BCF gbl_t1con,0
+
+    tmr1h = 0;           // preset for timer1 MSB register
+05B1  018F  	CLRF gbl_tmr1h
+
+    tmr1l = 0;           // preset for timer1 LSB register
+05B2  018E  	CLRF gbl_tmr1l
+
+
+    pie1.TMR1IE = 1; // Timer 1 interrupt
+05B3  1683  	BSF STATUS, RP0
+05B4  140C  	BSF gbl_pie1,0
+
+    pir1.TMR1IF = 0; // Clear timer 1 interrupt flag bit
+05B5  1283  	BCF STATUS, RP0
+05B6  100C  	BCF gbl_pir1,0
+
+
+    // Timer 2 setup - interrupt every 890us (0.00088800)
+    // 4MHz settings
+    // Timer2 Registers Prescaler= 1 - TMR2 PostScaler = 8 - PR2 = 110 - Freq = 1136.36 Hz - Period = 0.000880 seconds
+    t2con |= 56;       // bits 6-3 Post scaler 1:1 thru 1:16
+05B7  3038  	MOVLW 0x38
+05B8  0492  	IORWF gbl_t2con, F
+
+    t2con.TMR2ON = 0;  // bit 2 turn timer2 off;
+05B9  1112  	BCF gbl_t2con,2
+
+    t2con.T2CKPS1 = 0; // bits 1-0  Prescaler Rate Select bits
+05BA  1092  	BCF gbl_t2con,1
+
+    t2con.T2CKPS0 = 0;
+05BB  1012  	BCF gbl_t2con,0
+
+    pr2 = IR_PR2_890US;// Preload timer2 comparator value - 0.00088800s
+05BC  306C  	MOVLW 0x6C
+05BD  1683  	BSF STATUS, RP0
+05BE  0092  	MOVWF gbl_pr2
+
+    pir1.TMR2IF = 0;   // Clear timer 2 interrupt flag bit
+05BF  1283  	BCF STATUS, RP0
+05C0  108C  	BCF gbl_pir1,1
+
+    pie1.TMR2IE = 1;   // Timer 2 interrupt enabled
+05C1  1683  	BSF STATUS, RP0
+05C2  148C  	BSF gbl_pie1,1
+
+
+    // Setup for RB0 Interrupt [IR Sensor]
+    intcon.INTE = 1; // RB0 Interrupt (for IR receive)
+05C3  160B  	BSF gbl_intcon,4
+
+    option_reg.INTEDG = 0; // RB0 interrupt should occur on falling edge
+05C4  1301  	BCF gbl_option_reg,6
+
+    intcon.INTF = 0; // Clear RB0 interrupt flag bit
+05C5  108B  	BCF gbl_intcon,1
+
+    
+    // Initialise I2C MSSP
+    // Master 100KHz
+    // TRISC set SCL and SDA pins as inputs above
+    // SSPEN (I2C), CKP (clock polarity), SSPM3:SSPM0 -> 1000 = I2C Master mode, 
+    sspcon = 0x38; // I2C enabled (SSPEN), Master mode
+05C6  3038  	MOVLW 0x38
+05C7  1283  	BCF STATUS, RP0
+05C8  0094  	MOVWF gbl_sspcon
+
+    sspcon2 = 0x00;
+05C9  1683  	BSF STATUS, RP0
+05CA  0191  	CLRF gbl_sspcon2
+
+    sspadd = 9; // Clock 100Khz @ 4Mhz Fosc - 4000000 / (4 * (9 + 1))
+05CB  3009  	MOVLW 0x09
+05CC  0093  	MOVWF gbl_sspadd
+
+    sspstat.SMP = 1; // Slew rate disabled
+05CD  1794  	BSF gbl_sspstat,7
+
+    sspstat.CKE = 0;
+05CE  1314  	BCF gbl_sspstat,6
+
+    pir2.BCLIF = 0;
+05CF  1283  	BCF STATUS, RP0
+05D0  118D  	BCF gbl_pir2,3
+
+    
+    // Read in variables from EEPROM
+    readData(); 
+05D1  23D0  	CALL readData_00000
+
+
+    delay_s(1);
+05D2  3001  	MOVLW 0x01
+05D3  00C5  	MOVWF delay_s_00000_arg_del
+05D4  2026  	CALL delay_s_00000
+
+    RED = 1; // Standby LED
+05D5  1283  	BCF STATUS, RP0
+05D6  1407  	BSF gbl_portc,0
+
+
+    // Setup and test the MAX7219 8 digit display
+    // v1.2 change this to allow for display on pin
+    ledOn();
+05D7  22F4  	CALL ledOn_00000
+
+    ledTest();
+05D8  23FC  	CALL ledTest_00000
+
+    delay_s(2);
+05D9  3002  	MOVLW 0x02
+05DA  00C5  	MOVWF delay_s_00000_arg_del
+05DB  2026  	CALL delay_s_00000
+
+    // v1.2 clear not needed before off
+    ledOff();
+05DC  230C  	CALL ledOff_00000
+
+
+    // Interrupt setup
+    intcon.PEIE = 1; // Enables all unmasked peripheral interrupts (required for RS232 and I2C)
+05DD  170B  	BSF gbl_intcon,6
+
+
+    // Enable global interrupts
+    intcon.GIE = 1;
+05DE  178B  	BSF gbl_intcon,7
+
+
+    // No task at initialisation
+    cTask = 0;
+05DF  01AD  	CLRF gbl_cTask
+
+}
+05E0  0008  	RETURN
+
+
+/***********************************************************************************
+  Interrupt handler
+************************************************************************************/
+void interrupt(void) {
+
+    // external interrupt on RB0 - IR sensor
+    if (intcon.INTF) {
+06E5  1C8B  	BTFSS gbl_intcon,1
+06E6  2F01  	GOTO	label103
+0701        label103
+
+        option_reg.INTEDG = intfCounter.0;
+06E7  1683  	BSF STATUS, RP0
+06E8  1303  	BCF STATUS, RP1
+06E9  1C3A  	BTFSS gbl_intfCounter,0
+06EA  2EEC  	GOTO	label101
+06EB  1701  	BSF gbl_option_reg,6
+06EC        label101
+06EC  1C3A  	BTFSS gbl_intfCounter,0
+06ED  1301  	BCF gbl_option_reg,6
+
+        intfCounter++;
+06EE  0ABA  	INCF gbl_intfCounter, F
+
+        rc5_logicChange++;
+06EF  0ABE  	INCF gbl_rc5_logicChange, F
+
+        if (rc5_currentState == rc5_idleState) {
+06F0  08BF  	MOVF gbl_rc5_currentState, F
+06F1  1D03  	BTFSS STATUS,Z
+06F2  2F00  	GOTO	label102
+0700        label102
+
+            // If the state was idle, start the timer
+            rc5_logicInterval = 0;
+06F3  01BD  	CLRF gbl_rc5_logicInterval
+
+            rc5_logicChange = 0;
+06F4  01BE  	CLRF gbl_rc5_logicChange
+
+            // Timer 2 should run for about 200us at first
+            tmr2 = 0;
+06F5  1283  	BCF STATUS, RP0
+06F6  0191  	CLRF gbl_tmr2
+
+            // 4MHz settings
+            pr2 = IR_PR2_200US;
+06F7  301A  	MOVLW 0x1A
+06F8  1683  	BSF STATUS, RP0
+06F9  0092  	MOVWF gbl_pr2
+
+            pir1.TMR2IF = 0; // Clear interrupt flag
+06FA  1283  	BCF STATUS, RP0
+06FB  108C  	BCF gbl_pir1,1
+
+            t2con.TMR2ON = 1; // Timer 2 is on
+06FC  1512  	BSF gbl_t2con,2
+
+            rc5_currentState = rc5_initialWaitState;
+06FD  3001  	MOVLW 0x01
+06FE  1683  	BSF STATUS, RP0
+06FF  00BF  	MOVWF gbl_rc5_currentState
+
+        }
+        intcon.INTF = 0; //clear interrupt flag.
+0700  108B  	BCF gbl_intcon,1
+
+    }
+    // Interrupt on timer2 - IR code https://tamilarduino.blogspot.com/2014/06/ir-remote-philips-rc5-decoding-using.html
+    if(pir1.TMR2IF) {
+0701  1283  	BCF STATUS, RP0
+0702  1303  	BCF STATUS, RP1
+0703  1C8C  	BTFSS gbl_pir1,1
+0704  2F87  	GOTO	label120
+0787        label120
+
+        rc5_pinState = IR_PIN;
+0705  1683  	BSF STATUS, RP0
+0706  01C0  	CLRF gbl_rc5_pinState
+0707  1283  	BCF STATUS, RP0
+0708  1C06  	BTFSS gbl_portb,0
+0709  2F0C  	GOTO	label104
+070A  1683  	BSF STATUS, RP0
+070B  0AC0  	INCF gbl_rc5_pinState, F
+070C        label104
+
+        if (rc5_currentState != rc5_initialWaitState) {
+070C  1683  	BSF STATUS, RP0
+070D  033F  	DECF gbl_rc5_currentState, W
+070E  1903  	BTFSC STATUS,Z
+070F  2F1A  	GOTO	label106
+
+            rc5_logicInterval++;
+0710  0ABD  	INCF gbl_rc5_logicInterval, F
+
+            IR_LED = rc5_logicInterval.0; // Flick IR LED
+0711  1C3D  	BTFSS gbl_rc5_logicInterval,0
+0712  2F15  	GOTO	label105
+0713  1283  	BCF STATUS, RP0
+0714  1486  	BSF gbl_portb,1
+0715  1683  	BSF STATUS, RP0
+0716  183D  	BTFSC gbl_rc5_logicInterval,0
+0717  2F1A  	GOTO	label106
+0718  1283  	BCF STATUS, RP0
+0719  1086  	BCF gbl_portb,1
+
+        }
+        char iReset = 0;
+071A  1683  	BSF STATUS, RP0
+071B  01D6  	CLRF interrupt_15_iReset
+
+        // Switch statement to process IR depending on where/state of the command timer currently expects to be
+        switch (rc5_currentState){
+077B        label118
+
+            // If in initial wait state - timer completed the first 200us, switch to the normal 890us
+            case rc5_initialWaitState:
+071C  083F  	MOVF gbl_rc5_currentState, W
+071D  3A01  	XORLW 0x01
+071E  1903  	BTFSC STATUS,Z
+071F  2F27  	GOTO	label107
+0727        label107
+
+                // Timer 2 interrupt every 890us
+                tmr2 = 0;
+0727  1283  	BCF STATUS, RP0
+0728  0191  	CLRF gbl_tmr2
+
+                // 111 for exactly 888us
+                pr2 = IR_PR2_890US; // Preload timer2 comparator value - 888us (0.000888s)
+0729  306C  	MOVLW 0x6C
+072A  1683  	BSF STATUS, RP0
+072B  0092  	MOVWF gbl_pr2
+
+                // Switch to start bit state
+                rc5_currentState = rc5_startBitState;
+072C  3002  	MOVLW 0x02
+072D  00BF  	MOVWF gbl_rc5_currentState
+
+                break;
+072E  2F7B  	GOTO	label118
+
+            // If in start bit state - check for (second) start bit, Logic on RB0 must change in 890us or considers as a fault signal.
+            case rc5_startBitState:
+0720  3A03  	XORLW 0x03
+0721  1903  	BTFSC STATUS,Z
+0722  2F2F  	GOTO	label108
+072F        label108
+
+                if ((rc5_logicInterval == 1) && (rc5_logicChange == 1)) {
+072F  033D  	DECF gbl_rc5_logicInterval, W
+0730  1D03  	BTFSS STATUS,Z
+0731  2F3D  	GOTO	label109
+0732  033E  	DECF gbl_rc5_logicChange, W
+0733  1D03  	BTFSS STATUS,Z
+0734  2F3D  	GOTO	label109
+073D        label109
+
+                    // Valid start bits were found
+                    rc5_logicInterval = 0;
+0735  01BD  	CLRF gbl_rc5_logicInterval
+
+                    rc5_logicChange = 0;
+0736  01BE  	CLRF gbl_rc5_logicChange
+
+                    rc5_bitCount = 0;
+0737  01BC  	CLRF gbl_rc5_bitCount
+
+                    rc5_inputData = 0;
+0738  01AB  	CLRF gbl_rc5_inputData
+0739  01AC  	CLRF gbl_rc5_inputData+D'1'
+
+                    rc5_currentState = rc5_captureBitState; // Switch to capturing state
+073A  3003  	MOVLW 0x03
+073B  00BF  	MOVWF gbl_rc5_currentState
+
+                } else {
+073C  2F7B  	GOTO	label118
+
+                    iReset = 1;
+073D  3001  	MOVLW 0x01
+073E  00D6  	MOVWF interrupt_15_iReset
+
+                }
+                break;
+073F  2F7B  	GOTO	label118
+
+            // If in capture bit state - sample RB0 logic every 1780us (rc5_logicInterval = 2)
+            // Data is only valid if the logic on RB0 changed
+            // Data is stored in rc5_command and rc5_address
+            case rc5_captureBitState:
+0723  3A01  	XORLW 0x01
+0724  1903  	BTFSC STATUS,Z
+0725  2F40  	GOTO	label110
+0740        label110
+
+                // Logic interval must be 2 - 1780us
+                if(rc5_logicInterval == 2) {
+0740  083D  	MOVF gbl_rc5_logicInterval, W
+0741  3A02  	XORLW 0x02
+0742  1D03  	BTFSS STATUS,Z
+0743  2F7B  	GOTO	label118
+
+                    // Logic change must occur 2 times or less, otherwise it is invalid
+                    if(rc5_logicChange <= 2) {
+0744  083E  	MOVF gbl_rc5_logicChange, W
+0745  3C02  	SUBLW 0x02
+0746  1C03  	BTFSS STATUS,C
+0747  2F76  	GOTO	label116
+0776        label116
+
+                        rc5_logicInterval = 0;
+0748  01BD  	CLRF gbl_rc5_logicInterval
+
+                        rc5_logicChange = 0;
+0749  01BE  	CLRF gbl_rc5_logicChange
+
+                        // If the number of bits received is less than 12, shift the new bit into the inputData
+                        if(rc5_bitCount < 12) {
+074A  300C  	MOVLW 0x0C
+074B  023C  	SUBWF gbl_rc5_bitCount, W
+074C  1803  	BTFSC STATUS,C
+074D  2F56  	GOTO	label111
+0756        label111
+
+                            rc5_bitCount++;
+074E  0ABC  	INCF gbl_rc5_bitCount, F
+
+                            rc5_inputData <<= 1; // Shift recorded bits to the left
+074F  1003  	BCF STATUS,C
+0750  0DAB  	RLF gbl_rc5_inputData, F
+0751  0DAC  	RLF gbl_rc5_inputData+D'1', F
+
+                            if(rc5_pinState == 1) {
+0752  0340  	DECF gbl_rc5_pinState, W
+0753  1903  	BTFSC STATUS,Z
+
+                                rc5_inputData.0 = 1; // Add the new bit in
+0754  142B  	BSF gbl_rc5_inputData,0
+
+                            }
+                        } else {
+0755  2F7B  	GOTO	label118
+
+                            // All 12 bits received
+                            rc5_command = rc5_inputData & 0x3F; // 00111111 - command is the last 6 bits
+0756  303F  	MOVLW 0x3F
+0757  052B  	ANDWF gbl_rc5_inputData, W
+0758  00C4  	MOVWF gbl_rc5_command
+
+                            rc5_inputData >>= 6; // Shift 6 bits right, clearing command
+0759  3006  	MOVLW 0x06
+075A  00D7  	MOVWF CompTempVar604
+075B  08D7  	MOVF CompTempVar604, F
+075C        label112
+075C  1903  	BTFSC STATUS,Z
+075D  2F63  	GOTO	label113
+075E  1003  	BCF STATUS,C
+075F  0CAC  	RRF gbl_rc5_inputData+D'1', F
+0760  0CAB  	RRF gbl_rc5_inputData, F
+0761  03D7  	DECF CompTempVar604, F
+0762  2F5C  	GOTO	label112
+0763        label113
+
+                            rc5_address = rc5_inputData & 0x1F; // 00011111 - address is now the last 5 bits
+0763  301F  	MOVLW 0x1F
+0764  052B  	ANDWF gbl_rc5_inputData, W
+0765  00C3  	MOVWF gbl_rc5_address
+
+                            rc5_inputData >>= 5; // Shift 5 bits right, clearing address
+0766  3005  	MOVLW 0x05
+0767  00D7  	MOVWF CompTempVar605
+0768  08D7  	MOVF CompTempVar605, F
+0769        label114
+0769  1903  	BTFSC STATUS,Z
+076A  2F70  	GOTO	label115
+076B  1003  	BCF STATUS,C
+076C  0CAC  	RRF gbl_rc5_inputData+D'1', F
+076D  0CAB  	RRF gbl_rc5_inputData, F
+076E  03D7  	DECF CompTempVar605, F
+076F  2F69  	GOTO	label114
+0770        label115
+
+                            // Last bit is the flick bit
+                            rc5_flickBit = rc5_inputData;
+0770  082B  	MOVF gbl_rc5_inputData, W
+0771  00C1  	MOVWF gbl_rc5_flickBit
+
+                            
+                            // Flag this task to the task array - IR command will be processed in the main loop
+                            cTask.TASK_INT_EXT0 = 1;
+0772  142D  	BSF gbl_cTask,0
+
+
+                            // Command finished - reset status
+                            iReset = 1;
+0773  3001  	MOVLW 0x01
+0774  00D6  	MOVWF interrupt_15_iReset
+
+                        }
+                    } else {
+0775  2F7B  	GOTO	label118
+
+                        // Not valid - reset status
+                        iReset = 1;
+0776  3001  	MOVLW 0x01
+0777  00D6  	MOVWF interrupt_15_iReset
+
+                    }
+                }
+                break;
+0778  2F7B  	GOTO	label118
+
+            default: 
+0726  2F79  	GOTO	label117
+0779        label117
+
+                iReset = 1;
+0779  3001  	MOVLW 0x01
+077A  00D6  	MOVWF interrupt_15_iReset
+
+        }
+        
+        // Reset status if not valid
+        if (iReset) {
+077B  08D6  	MOVF interrupt_15_iReset, F
+077C  1903  	BTFSC STATUS,Z
+077D  2F85  	GOTO	label119
+0785        label119
+
+            // Not valid - reset status
+            rc5_currentState = rc5_idleState;
+077E  01BF  	CLRF gbl_rc5_currentState
+
+            t2con.TMR2ON = 0; // Disable Timer 2
+077F  1283  	BCF STATUS, RP0
+0780  1112  	BCF gbl_t2con,2
+
+            option_reg.INTEDG = 0; // Interrupt on falling edge
+0781  1683  	BSF STATUS, RP0
+0782  1301  	BCF gbl_option_reg,6
+
+            IR_LED = 0; // switch off IR LED
+0783  1283  	BCF STATUS, RP0
+0784  1086  	BCF gbl_portb,1
+
+        }
+        pir1.TMR2IF = 0; // Clear interrupt flag
+0785  1283  	BCF STATUS, RP0
+0786  108C  	BCF gbl_pir1,1
+
+    }
+    // timer 1 interrupt - process mute button released
+    if (pir1.TMR1IF) {
+0787  1C0C  	BTFSS gbl_pir1,0
+0788  2F90  	GOTO	label121
+0790        label121
+
+        // timer 1 will interrupt every 131ms with a 1:2 prescaler at 4MHz
+        // This is just longer than an RC5 message
+        
+        // If held more than 14 times (114ms * 14 is just over 1.5 seconds), enter function mode
+        if (iMuteHeld < 15) {
+0789  300F  	MOVLW 0x0F
+078A  1683  	BSF STATUS, RP0
+078B  0233  	SUBWF gbl_iMuteHeld, W
+078C  1C03  	BTFSS STATUS,C
+
+            // flag for muting
+            cTask.TASK_TIMER1_MUTE = 1;
+078D  16AD  	BSF gbl_cTask,5
+
+        }
+        
+        pir1.TMR1IF = 0; // Clear interrupt flag
+078E  1283  	BCF STATUS, RP0
+078F  100C  	BCF gbl_pir1,0
+
+    }
+}
+0790  1683  	BSF STATUS, RP0
+0791  0E2A  	SWAPF Int1BContext+D'2', W
+0792  0084  	MOVWF FSR
+0793  0E29  	SWAPF Int1BContext+D'1', W
+0794  008A  	MOVWF PCLATH
+0795  0E28  	SWAPF Int1BContext, W
+0796  0083  	MOVWF STATUS
+0797  0EFF  	SWAPF Int1Context, F
+0798  0E7F  	SWAPF Int1Context, W
+0799  0009  	RETFIE
+
+
+void timer1Reset() {
+
+    // switch off timer, and reset counters
+    t1con.TMR1ON = 0;
+0168  1283  	BCF STATUS, RP0
+0169  1303  	BCF STATUS, RP1
+016A  1010  	BCF gbl_t1con,0
+
+    tmr1h = 0;
+016B  018F  	CLRF gbl_tmr1h
+
+    tmr1l = 0;
+016C  018E  	CLRF gbl_tmr1l
+
+}
+016D  0008  	RETURN
+
+
+/***********************************************************************************
+  EEPROM read and write methods
+************************************************************************************/
+void saveData() {
+
+    char didWrite = 0;
+02B8  1683  	BSF STATUS, RP0
+02B9  1303  	BCF STATUS, RP1
+02BA  01C5  	CLRF saveData_00000_1_didWrite
+
+    // only write value if it is different
+    didWrite += eepromWrite(1, iVolume);
+02BB  3001  	MOVLW 0x01
+02BC  00C6  	MOVWF eepromWrit_00014_arg_address
+02BD  0831  	MOVF gbl_iVolume, W
+02BE  00C7  	MOVWF eepromWrit_00014_arg_data
+02BF  213B  	CALL eepromWrit_00014
+02C0  0849  	MOVF CompTempVarRet550, W
+02C1  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(2, iAttenuateL);
+02C2  3002  	MOVLW 0x02
+02C3  00C6  	MOVWF eepromWrit_00014_arg_address
+02C4  0834  	MOVF gbl_iAttenuateL, W
+02C5  00C7  	MOVWF eepromWrit_00014_arg_data
+02C6  213B  	CALL eepromWrit_00014
+02C7  0849  	MOVF CompTempVarRet550, W
+02C8  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(3, iAttenuateR);
+02C9  3003  	MOVLW 0x03
+02CA  00C6  	MOVWF eepromWrit_00014_arg_address
+02CB  0835  	MOVF gbl_iAttenuateR, W
+02CC  00C7  	MOVWF eepromWrit_00014_arg_data
+02CD  213B  	CALL eepromWrit_00014
+02CE  0849  	MOVF CompTempVarRet550, W
+02CF  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(4, iBass);
+02D0  3004  	MOVLW 0x04
+02D1  00C6  	MOVWF eepromWrit_00014_arg_address
+02D2  0836  	MOVF gbl_iBass, W
+02D3  00C7  	MOVWF eepromWrit_00014_arg_data
+02D4  213B  	CALL eepromWrit_00014
+02D5  0849  	MOVF CompTempVarRet550, W
+02D6  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(5, iMid);
+02D7  3005  	MOVLW 0x05
+02D8  00C6  	MOVWF eepromWrit_00014_arg_address
+02D9  0837  	MOVF gbl_iMid, W
+02DA  00C7  	MOVWF eepromWrit_00014_arg_data
+02DB  213B  	CALL eepromWrit_00014
+02DC  0849  	MOVF CompTempVarRet550, W
+02DD  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(6, iTreble);
+02DE  3006  	MOVLW 0x06
+02DF  00C6  	MOVWF eepromWrit_00014_arg_address
+02E0  0838  	MOVF gbl_iTreble, W
+02E1  00C7  	MOVWF eepromWrit_00014_arg_data
+02E2  213B  	CALL eepromWrit_00014
+02E3  0849  	MOVF CompTempVarRet550, W
+02E4  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    didWrite += eepromWrite(7, iActiveInput);
+02E5  3007  	MOVLW 0x07
+02E6  00C6  	MOVWF eepromWrit_00014_arg_address
+02E7  0830  	MOVF gbl_iActiveInput, W
+02E8  00C7  	MOVWF eepromWrit_00014_arg_data
+02E9  213B  	CALL eepromWrit_00014
+02EA  0849  	MOVF CompTempVarRet550, W
+02EB  07C5  	ADDWF saveData_00000_1_didWrite, F
+
+    
+    if (didWrite)
+02EC  08C5  	MOVF saveData_00000_1_didWrite, F
+02ED  1903  	BTFSC STATUS,Z
+
+        eepromWrite(0, 10); // To indicate EEPROM has been saved
+02EF  01C6  	CLRF eepromWrit_00014_arg_address
+02F0  300A  	MOVLW 0x0A
+02F1  00C7  	MOVWF eepromWrit_00014_arg_data
+02F2  213B  	CALL eepromWrit_00014
+
+}
+02EE  0008  	RETURN
+02F3  0008  	RETURN
+
+
+char eepromWrite(char address, char data) {
+
+    char didWrite = 0;
+013B  01C8  	CLRF eepromWrit_00014_1_didWrite
+
+    if (eepromRead(address) != data) {
+013C  0846  	MOVF eepromWrit_00014_arg_address, W
+013D  00C9  	MOVWF eepromRead_00000_arg_address
+013E  209E  	CALL eepromRead_00000
+013F  0847  	MOVF eepromWrit_00014_arg_data, W
+0140  064A  	XORWF CompTempVarRet551, W
+0141  1903  	BTFSC STATUS,Z
+0142  2965  	GOTO	label21
+0165        label21
+
+        char intconsave = intcon;
+0143  080B  	MOVF gbl_intcon, W
+0144  00C9  	MOVWF eepromWrit_00014_4_intconsave
+
+        
+        // Load address and data
+        eeadr = address;
+0145  0846  	MOVF eepromWrit_00014_arg_address, W
+0146  1283  	BCF STATUS, RP0
+0147  1703  	BSF STATUS, RP1
+0148  008D  	MOVWF gbl_eeadr
+
+        eedata = data;
+0149  1683  	BSF STATUS, RP0
+014A  1303  	BCF STATUS, RP1
+014B  0847  	MOVF eepromWrit_00014_arg_data, W
+014C  1283  	BCF STATUS, RP0
+014D  1703  	BSF STATUS, RP1
+014E  008C  	MOVWF gbl_eedata
+
+    
+        eecon1.EEPGD = 0; // Point to DATA memory
+014F  1683  	BSF STATUS, RP0
+0150  138C  	BCF gbl_eecon1,7
+
+        //eecon1.CFGS = 0; // Access EEPROM
+        eecon1.WREN = 1; // Enable writes
+0151  150C  	BSF gbl_eecon1,2
+
+        
+        // Required write sequence
+        intcon = 0;
+0152  018B  	CLRF gbl_intcon
+
+        eecon2 = 0x55; // Write 55h
+0153  3055  	MOVLW 0x55
+0154  008D  	MOVWF gbl_eecon2
+
+        eecon2 = 0xAA; // Write 0AAh
+0155  30AA  	MOVLW 0xAA
+0156  008D  	MOVWF gbl_eecon2
+
+        eecon1.WR = 1; // Set WR bit to begin write
+0157  148C  	BSF gbl_eecon1,1
+
+        intcon = intconsave;
+0158  1303  	BCF STATUS, RP1
+0159  0849  	MOVF eepromWrit_00014_4_intconsave, W
+015A  008B  	MOVWF gbl_intcon
+
+        eecon1.WREN = 0; // Disable writes on write complete (EEIF set)
+015B  1703  	BSF STATUS, RP1
+015C  110C  	BCF gbl_eecon1,2
+
+        while(!pir2.EEIF); // Wait for the interrupt bit EEIF to be set
+015D        label20
+015D  1283  	BCF STATUS, RP0
+015E  1303  	BCF STATUS, RP1
+015F  1E0D  	BTFSS gbl_pir2,4
+0160  295D  	GOTO	label20
+
+        pir2.EEIF = 0; // Clear EEIF
+0161  120D  	BCF gbl_pir2,4
+
+        didWrite = 1;
+0162  3001  	MOVLW 0x01
+0163  1683  	BSF STATUS, RP0
+0164  00C8  	MOVWF eepromWrit_00014_1_didWrite
+
+    }
+    return didWrite;
+0165  0848  	MOVF eepromWrit_00014_1_didWrite, W
+0166  00C9  	MOVWF CompTempVarRet550
+
+}
+0167  0008  	RETURN
+
+
+/******************************************************
+  Function to read the current variables from ROM
+*******************************************************/
+void readData() {
+
+    // Read initial values from EEPROM
+    // Do not read other variables if the EEPROM has not been saved before
+    // as all default will be 0xFF
+    if (eepromRead(0) == 10) {
+03D0  1683  	BSF STATUS, RP0
+03D1  1303  	BCF STATUS, RP1
+03D2  01C9  	CLRF eepromRead_00000_arg_address
+03D3  209E  	CALL eepromRead_00000
+03D4  084A  	MOVF CompTempVarRet551, W
+03D5  3A0A  	XORLW 0x0A
+03D6  1D03  	BTFSS STATUS,Z
+
+        iVolume = eepromRead(1);
+03D8  3001  	MOVLW 0x01
+03D9  00C9  	MOVWF eepromRead_00000_arg_address
+03DA  209E  	CALL eepromRead_00000
+03DB  084A  	MOVF CompTempVarRet551, W
+03DC  00B1  	MOVWF gbl_iVolume
+
+        iAttenuateL = eepromRead(2);
+03DD  3002  	MOVLW 0x02
+03DE  00C9  	MOVWF eepromRead_00000_arg_address
+03DF  209E  	CALL eepromRead_00000
+03E0  084A  	MOVF CompTempVarRet551, W
+03E1  00B4  	MOVWF gbl_iAttenuateL
+
+        iAttenuateR = eepromRead(3);
+03E2  3003  	MOVLW 0x03
+03E3  00C9  	MOVWF eepromRead_00000_arg_address
+03E4  209E  	CALL eepromRead_00000
+03E5  084A  	MOVF CompTempVarRet551, W
+03E6  00B5  	MOVWF gbl_iAttenuateR
+
+        iBass = eepromRead(4);
+03E7  3004  	MOVLW 0x04
+03E8  00C9  	MOVWF eepromRead_00000_arg_address
+03E9  209E  	CALL eepromRead_00000
+03EA  084A  	MOVF CompTempVarRet551, W
+03EB  00B6  	MOVWF gbl_iBass
+
+        iMid = eepromRead(5);
+03EC  3005  	MOVLW 0x05
+03ED  00C9  	MOVWF eepromRead_00000_arg_address
+03EE  209E  	CALL eepromRead_00000
+03EF  084A  	MOVF CompTempVarRet551, W
+03F0  00B7  	MOVWF gbl_iMid
+
+        iTreble = eepromRead(6);
+03F1  3006  	MOVLW 0x06
+03F2  00C9  	MOVWF eepromRead_00000_arg_address
+03F3  209E  	CALL eepromRead_00000
+03F4  084A  	MOVF CompTempVarRet551, W
+03F5  00B8  	MOVWF gbl_iTreble
+
+        iActiveInput = eepromRead(7);
+03F6  3007  	MOVLW 0x07
+03F7  00C9  	MOVWF eepromRead_00000_arg_address
+03F8  209E  	CALL eepromRead_00000
+03F9  084A  	MOVF CompTempVarRet551, W
+03FA  00B0  	MOVWF gbl_iActiveInput
+
+    }
+}
+03D7  0008  	RETURN
+03FB  0008  	RETURN
+
+
+char eepromRead(char address) {
+
+    // Load address
+    eeadr = address;
+009E  0849  	MOVF eepromRead_00000_arg_address, W
+009F  1283  	BCF STATUS, RP0
+00A0  1703  	BSF STATUS, RP1
+00A1  008D  	MOVWF gbl_eeadr
+
+    eecon1.EEPGD = 0; // Point to DATA memory
+00A2  1683  	BSF STATUS, RP0
+00A3  138C  	BCF gbl_eecon1,7
+
+    //eecon1.CFGS = 0; // Access EEPROM
+    
+    // Read, data is available in eedata the next cycle.
+    eecon1.RD = 1;
+00A4  140C  	BSF gbl_eecon1,0
+
+    
+    // Return value
+    return eedata;
+00A5  1283  	BCF STATUS, RP0
+00A6  080C  	MOVF gbl_eedata, W
+00A7  1683  	BSF STATUS, RP0
+00A8  1303  	BCF STATUS, RP1
+00A9  00CA  	MOVWF CompTempVarRet551
+
+}
+00AA  0008  	RETURN
+
+    
+/***********************************************************************************
+  LED Display Functions
+************************************************************************************/
+// Converts a string of characters into decoded 7 segment bytes for LED character array
+// Optionally writes these bytes to LED displays
+void ledPrint(unsigned char *s) {
+
+    char dig;
+    for (dig = 0; dig < 8; dig++) {
+00EF  01D2  	CLRF ledPrint_00001_1_dig
+00F0        label13
+00F0  3008  	MOVLW 0x08
+00F1  0252  	SUBWF ledPrint_00001_1_dig, W
+00F2  1803  	BTFSC STATUS,C
+0111  0AD2  	INCF ledPrint_00001_1_dig, F
+0112  28F0  	GOTO	label13
+
+        if (*s) {
+00F4  1383  	BCF STATUS,IRP
+00F5  1849  	BTFSC ledPrint_00001_arg_s+D'1',0
+00F6  1783  	BSF STATUS,IRP
+00F7  0848  	MOVF ledPrint_00001_arg_s, W
+00F8  0084  	MOVWF FSR
+00F9  0880  	MOVF INDF, F
+00FA  1903  	BTFSC STATUS,Z
+00FB  290A  	GOTO	label14
+010A        label14
+
+            ledChar(dig, *s++);
+00FC  0852  	MOVF ledPrint_00001_1_dig, W
+00FD  00D3  	MOVWF ledChar_00000_arg_iCol
+00FE  1383  	BCF STATUS,IRP
+00FF  1849  	BTFSC ledPrint_00001_arg_s+D'1',0
+0100  1783  	BSF STATUS,IRP
+0101  0848  	MOVF ledPrint_00001_arg_s, W
+0102  0084  	MOVWF FSR
+0103  0AC8  	INCF ledPrint_00001_arg_s, F
+0104  1903  	BTFSC STATUS,Z
+0105  0AC9  	INCF ledPrint_00001_arg_s+D'1', F
+0106  0800  	MOVF INDF, W
+0107  00D4  	MOVWF ledChar_00000_arg_iChar
+0108  2035  	CALL ledChar_00000
+
+        } else {
+0109  2911  	GOTO	label15
+0111        label15
+
+            ledData1[dig] = 0;
+010A  1383  	BCF	STATUS,IRP
+010B  30A0  	MOVLW LOW(gbl_ledData1+D'0')
+010C  0084  	MOVWF FSR
+010D  0852  	MOVF ledPrint_00001_1_dig, W
+010E  0784  	ADDWF FSR, F
+010F  3000  	MOVLW 0x00
+0110  0080  	MOVWF INDF
+
+        }
+    }
+}
+00F3  0008  	RETURN
+
+
+// Converts an ASCII char to decoded byte and places it in LED array
+// Support decimal places
+//void ledChar(char iCol, char iChar, char iHasDot) {
+void ledChar(char iCol, char iChar) {
+
+    char iDecoded = displayASCIItoSeg[iChar - 0x20];
+0035  1383  	BCF	STATUS,IRP
+0036  3020  	MOVLW LOW(gbl_displayASCIItoSeg+D'0')
+0037  0084  	MOVWF FSR
+0038  3020  	MOVLW 0x20
+0039  0254  	SUBWF ledChar_00000_arg_iChar, W
+003A  0784  	ADDWF FSR, F
+003B  0800  	MOVF INDF, W
+003C  00D5  	MOVWF ledChar_00000_1_iDecoded
+
+    // dot is unused in this implementation
+    //if (iHasDot)
+    //    iDecoded = iDecoded | 0x80;
+    ledData1[iCol] = iDecoded;
+003D  1383  	BCF	STATUS,IRP
+003E  30A0  	MOVLW LOW(gbl_ledData1+D'0')
+003F  0084  	MOVWF FSR
+0040  0853  	MOVF ledChar_00000_arg_iCol, W
+0041  0784  	ADDWF FSR, F
+0042  0855  	MOVF ledChar_00000_1_iDecoded, W
+0043  0080  	MOVWF INDF
+
+}
+0044  0008  	RETURN
+
+
+void ledSetDigits(char iValue, char iCol) {
+
+    // start by left filling
+    ledData1[iCol] = 0;
+004D  1383  	BCF	STATUS,IRP
+004E  30A0  	MOVLW LOW(gbl_ledData1+D'0')
+004F  0084  	MOVWF FSR
+0050  0849  	MOVF ledSetDigi_0001B_arg_iCol, W
+0051  0784  	ADDWF FSR, F
+0052  3000  	MOVLW 0x00
+0053  0080  	MOVWF INDF
+
+    
+    // determine to second (left most) digit
+    char dig2 = 0;
+0054  01CA  	CLRF ledSetDigi_0001B_1_dig2
+
+    // take off 10 from the value until it's less than 10
+    while (iValue >= 10) {
+0055        label6
+0055  300A  	MOVLW 0x0A
+0056  0248  	SUBWF ledSetDigi_0001B_arg_iValue, W
+0057  1C03  	BTFSS STATUS,C
+0058  285D  	GOTO	label7
+005C  2855  	GOTO	label6
+005D        label7
+
+       iValue -= 10;
+0059  300A  	MOVLW 0x0A
+005A  02C8  	SUBWF ledSetDigi_0001B_arg_iValue, F
+
+       // each time we take off 10, the left most digit is incremented
+       dig2++;
+005B  0ACA  	INCF ledSetDigi_0001B_1_dig2, F
+
+    }
+    
+    // if the left most digit is greater than zero, set the value into the array, adding on 48 to get the ascii value
+    if (dig2 != 0)
+005D  08CA  	MOVF ledSetDigi_0001B_1_dig2, F
+005E  1903  	BTFSC STATUS,Z
+005F  2866  	GOTO	label8
+0066        label8
+
+        ledChar(iCol, dig2 + 48);
+0060  0849  	MOVF ledSetDigi_0001B_arg_iCol, W
+0061  00D3  	MOVWF ledChar_00000_arg_iCol
+0062  3030  	MOVLW 0x30
+0063  074A  	ADDWF ledSetDigi_0001B_1_dig2, W
+0064  00D4  	MOVWF ledChar_00000_arg_iChar
+0065  2035  	CALL ledChar_00000
+
+    // set the unit value in the array (what's left on iValue), adding on 48 to get the ascii value
+    ledChar(iCol + 1, iValue + 48);
+0066  0A49  	INCF ledSetDigi_0001B_arg_iCol, W
+0067  00D3  	MOVWF ledChar_00000_arg_iCol
+0068  3030  	MOVLW 0x30
+0069  0748  	ADDWF ledSetDigi_0001B_arg_iValue, W
+006A  00D4  	MOVWF ledChar_00000_arg_iChar
+006B  2035  	CALL ledChar_00000
+
+}
+006C  0008  	RETURN
+
+
+// LED test function
+void ledTest() {
+
+    ledPrint("Init on");
+03FC  3020  	MOVLW 0x20
+03FD  1683  	BSF STATUS, RP0
+03FE  1303  	BCF STATUS, RP1
+03FF  00CE  	MOVWF CompTempVar554+D'4'
+0400  3049  	MOVLW 0x49
+0401  00CA  	MOVWF CompTempVar554
+0402  3069  	MOVLW 0x69
+0403  00CC  	MOVWF CompTempVar554+D'2'
+0404  306E  	MOVLW 0x6E
+0405  00CB  	MOVWF CompTempVar554+D'1'
+0406  00D0  	MOVWF CompTempVar554+D'6'
+0407  306F  	MOVLW 0x6F
+0408  00CF  	MOVWF CompTempVar554+D'5'
+0409  3074  	MOVLW 0x74
+040A  00CD  	MOVWF CompTempVar554+D'3'
+040B  01D1  	CLRF CompTempVar554+D'7'
+040C  3000  	MOVLW HIGH(CompTempVar554+D'0')
+040D  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+040E  30CA  	MOVLW LOW(CompTempVar554+D'0')
+040F  00C8  	MOVWF ledPrint_00001_arg_s
+0410  20EF  	CALL ledPrint_00001
+
+    ledWrite();
+0411  20B9  	CALL ledWrite_00000
+
+}
+0412  0008  	RETURN
+
+
+
+// Setup the MAX7219 LED displays by sending the required configuration bytes
+void ledSetup() {
+
+    // Scan limit
+    ledLatchDown();
+00D4  208D  	CALL ledLatchDo_00015
+
+    ledSendChar(0x0B);
+00D5  300B  	MOVLW 0x0B
+00D6  1683  	BSF STATUS, RP0
+00D7  00CA  	MOVWF ledSendCha_00016_arg_iData
+00D8  206D  	CALL ledSendCha_00016
+
+    ledSendChar(0x07); // Scan all 8 digits
+00D9  3007  	MOVLW 0x07
+00DA  00CA  	MOVWF ledSendCha_00016_arg_iData
+00DB  206D  	CALL ledSendCha_00016
+
+    ledLatchUp();
+00DC  2083  	CALL ledLatchUp_00000
+
+    
+    // Set no decode mode
+    ledLatchDown();
+00DD  208D  	CALL ledLatchDo_00015
+
+    ledSendChar(0x09);
+00DE  3009  	MOVLW 0x09
+00DF  1683  	BSF STATUS, RP0
+00E0  00CA  	MOVWF ledSendCha_00016_arg_iData
+00E1  206D  	CALL ledSendCha_00016
+
+    ledSendChar(0);
+00E2  01CA  	CLRF ledSendCha_00016_arg_iData
+00E3  206D  	CALL ledSendCha_00016
+
+    ledLatchUp();
+00E4  2083  	CALL ledLatchUp_00000
+
+    
+    // Set intensity
+    ledLatchDown();
+00E5  208D  	CALL ledLatchDo_00015
+
+    ledSendChar(0x0A);
+00E6  300A  	MOVLW 0x0A
+00E7  1683  	BSF STATUS, RP0
+00E8  00CA  	MOVWF ledSendCha_00016_arg_iData
+00E9  206D  	CALL ledSendCha_00016
+
+    //ledSendChar(0x08); // 8: 17/32
+    ledSendChar(0x05); // 4: 9/32
+00EA  3005  	MOVLW 0x05
+00EB  00CA  	MOVWF ledSendCha_00016_arg_iData
+00EC  206D  	CALL ledSendCha_00016
+
+    ledLatchUp();
+00ED  2083  	CALL ledLatchUp_00000
+
+}
+00EE  0008  	RETURN
+
+
+// Start LED display
+void ledOn() {
+
+    // v1.2 Power on and setup
+    LEDDATA = 0;
+02F4  1283  	BCF STATUS, RP0
+02F5  1303  	BCF STATUS, RP1
+02F6  1005  	BCF gbl_porta,0
+
+    LEDCLOCK = 0;
+02F7  1105  	BCF gbl_porta,2
+
+    LEDLATCH = 1;
+02F8  1485  	BSF gbl_porta,1
+
+    LEDDISPON = 0;
+02F9  1186  	BCF gbl_portb,3
+
+    delay_ms(250);
+02FA  30FA  	MOVLW 0xFA
+02FB  1683  	BSF STATUS, RP0
+02FC  00C6  	MOVWF delay_ms_00000_arg_del
+02FD  201A  	CALL delay_ms_00000
+
+    ledSetup();
+02FE  20D4  	CALL ledSetup_00000
+
+    // No shutdown
+    ledLatchDown();
+02FF  208D  	CALL ledLatchDo_00015
+
+    ledSendChar(0x0C);
+0300  300C  	MOVLW 0x0C
+0301  1683  	BSF STATUS, RP0
+0302  00CA  	MOVWF ledSendCha_00016_arg_iData
+0303  206D  	CALL ledSendCha_00016
+
+    ledSendChar(0x01); // no shutdown
+0304  3001  	MOVLW 0x01
+0305  00CA  	MOVWF ledSendCha_00016_arg_iData
+0306  206D  	CALL ledSendCha_00016
+
+    ledLatchUp();
+0307  2083  	CALL ledLatchUp_00000
+
+    // Startup time delay
+    delay_us(250);
+0308  30FA  	MOVLW 0xFA
+0309  00CA  	MOVWF delay_us_00000_arg_del
+030A  2010  	CALL delay_us_00000
+
+}
+030B  0008  	RETURN
+
+
+// Shutdown LED display
+void ledOff() {
+
+    // Shutdown
+    ledLatchDown();
+030C  208D  	CALL ledLatchDo_00015
+
+    ledSendChar(0x0C);
+030D  300C  	MOVLW 0x0C
+030E  1683  	BSF STATUS, RP0
+030F  00CA  	MOVWF ledSendCha_00016_arg_iData
+0310  206D  	CALL ledSendCha_00016
+
+    ledSendChar(0x00); // shutdown
+0311  01CA  	CLRF ledSendCha_00016_arg_iData
+0312  206D  	CALL ledSendCha_00016
+
+    ledLatchUp();
+0313  2083  	CALL ledLatchUp_00000
+
+    // v1.2, remove the power
+    LEDDISPON = 0;
+0314  1283  	BCF STATUS, RP0
+0315  1186  	BCF gbl_portb,3
+
+    delay_ms(100);
+0316  3064  	MOVLW 0x64
+0317  1683  	BSF STATUS, RP0
+0318  00C6  	MOVWF delay_ms_00000_arg_del
+0319  201A  	CALL delay_ms_00000
+
+}
+031A  0008  	RETURN
+
+
+// Write the bytes set in each array to the MAX7219 LED displays
+void ledWrite() {
+
+    char n;
+    char d = 7; // Characters in array are written out backwards so start from furthest (7)
+00B9  3007  	MOVLW 0x07
+00BA  1683  	BSF STATUS, RP0
+00BB  1303  	BCF STATUS, RP1
+00BC  00C9  	MOVWF ledWrite_00000_1_d
+
+    
+    // Loop through digits 0 to 8 (addressed as 1 to 9)
+    for (n = 1; n < 9; n++) { 
+00BD  3001  	MOVLW 0x01
+00BE  00C8  	MOVWF ledWrite_00000_1_n
+00BF        label12
+00BF  3009  	MOVLW 0x09
+00C0  0248  	SUBWF ledWrite_00000_1_n, W
+00C1  1803  	BTFSC STATUS,C
+00D2  0AC8  	INCF ledWrite_00000_1_n, F
+00D3  28BF  	GOTO	label12
+
+        ledLatchDown();
+00C3  208D  	CALL ledLatchDo_00015
+
+        // Writing character to device
+        ledSendChar(n); // Digit to write
+00C4  1683  	BSF STATUS, RP0
+00C5  0848  	MOVF ledWrite_00000_1_n, W
+00C6  00CA  	MOVWF ledSendCha_00016_arg_iData
+00C7  206D  	CALL ledSendCha_00016
+
+        ledSendChar(ledData1[d]); // Digit to write
+00C8  1383  	BCF	STATUS,IRP
+00C9  30A0  	MOVLW LOW(gbl_ledData1+D'0')
+00CA  0084  	MOVWF FSR
+00CB  0849  	MOVF ledWrite_00000_1_d, W
+00CC  0784  	ADDWF FSR, F
+00CD  0800  	MOVF INDF, W
+00CE  00CA  	MOVWF ledSendCha_00016_arg_iData
+00CF  206D  	CALL ledSendCha_00016
+
+        ledLatchUp();
+00D0  2083  	CALL ledLatchUp_00000
+
+        d--; // Decrement array counter
+00D1  03C9  	DECF ledWrite_00000_1_d, F
+
+    }
+}
+00C2  0008  	RETURN
+
+
+void ledLatchDown() {
+
+    // Load the new register
+    LEDDATA = 0;
+008D  1283  	BCF STATUS, RP0
+008E  1303  	BCF STATUS, RP1
+008F  1005  	BCF gbl_porta,0
+
+    LEDCLOCK = 0;
+0090  1105  	BCF gbl_porta,2
+
+    LEDLATCH = 0; // Clock must fall so that last bit is clocked out
+0091  1085  	BCF gbl_porta,1
+
+}
+0092  0008  	RETURN
+
+
+void ledLatchUp() {
+
+    // Load the new register
+    LEDLATCH = 1;
+0083  1283  	BCF STATUS, RP0
+0084  1303  	BCF STATUS, RP1
+0085  1485  	BSF gbl_porta,1
+
+    LEDCLOCK = 0; // Clock must fall after latch raised
+0086  1105  	BCF gbl_porta,2
+
+    LEDDATA = 0; // v1.2 Data to default
+0087  1005  	BCF gbl_porta,0
+
+    delay_us(LEDDELAYUS); // Need to delay before starting again
+0088  301E  	MOVLW 0x1E
+0089  1683  	BSF STATUS, RP0
+008A  00CA  	MOVWF delay_us_00000_arg_del
+008B  2010  	CALL delay_us_00000
+
+}
+008C  0008  	RETURN
+
+
+// Write a single piece of data (byte) out serially
+// Uses bit-banging to control protocol and delays
+void ledSendChar(char iData) {
+
+    // v1.2 made bit-bang loop more efficient
+    for (char cBitSelect = 0x80; cBitSelect; cBitSelect >>= 1) { // This code puts the byte onto the shift register output
+006D  3080  	MOVLW 0x80
+006E  00CB  	MOVWF ledSendCha_00016_2_cBitSelect
+006F        label9
+006F  08CB  	MOVF ledSendCha_00016_2_cBitSelect, F
+0070  1903  	BTFSC STATUS,Z
+007F  1003  	BCF STATUS,C
+0080  1683  	BSF STATUS, RP0
+0081  0CCB  	RRF ledSendCha_00016_2_cBitSelect, F
+0082  286F  	GOTO	label9
+
+        LEDCLOCK = 0; // Clock cleared
+0072  1283  	BCF STATUS, RP0
+0073  1105  	BCF gbl_porta,2
+
+        // LEDDATA pin set to the result of testing the bit in iData with logical AND
+        if (iData & cBitSelect)
+0074  1683  	BSF STATUS, RP0
+0075  084B  	MOVF ledSendCha_00016_2_cBitSelect, W
+0076  054A  	ANDWF ledSendCha_00016_arg_iData, W
+0077  1903  	BTFSC STATUS,Z
+0078  287C  	GOTO	label10
+007C        label10
+
+            LEDDATA = 1;
+0079  1283  	BCF STATUS, RP0
+007A  1405  	BSF gbl_porta,0
+
+        else
+007B  287E  	GOTO	label11
+007E        label11
+
+            LEDDATA = 0;
+007C  1283  	BCF STATUS, RP0
+007D  1005  	BCF gbl_porta,0
+
+        LEDCLOCK = 1; // Clock set high, so bit is loaded onto the shift register
+007E  1505  	BSF gbl_porta,2
+
+    }
+}
+0071  0008  	RETURN
+
+
+/***********************************************************************************
+  Power on or off routine
+************************************************************************************/
+void doPower() {
+
+    if (iPower) {
+04AF  1683  	BSF STATUS, RP0
+04B0  1303  	BCF STATUS, RP1
+04B1  08AE  	MOVF gbl_iPower, F
+04B2  1903  	BTFSC STATUS,Z
+04B3  2CDD  	GOTO	label74
+04DD        label74
+
+        // Switch on green (for muted)
+        BLUE = 0;
+04B4  1283  	BCF STATUS, RP0
+04B5  1107  	BCF gbl_portc,2
+
+        GREEN = 1;
+04B6  1487  	BSF gbl_portc,1
+
+        RED = 0;
+04B7  1007  	BCF gbl_portc,0
+
+        
+        // Disable timer 1
+        timer1Reset();
+04B8  2168  	CALL timer1Rese_00017
+
+
+        // Goodbye!
+        ledPrint("Goodbye");
+04B9  3047  	MOVLW 0x47
+04BA  1683  	BSF STATUS, RP0
+04BB  00CA  	MOVWF CompTempVar560
+04BC  306F  	MOVLW 0x6F
+04BD  00CB  	MOVWF CompTempVar560+D'1'
+04BE  00CC  	MOVWF CompTempVar560+D'2'
+04BF  3064  	MOVLW 0x64
+04C0  00CD  	MOVWF CompTempVar560+D'3'
+04C1  3062  	MOVLW 0x62
+04C2  00CE  	MOVWF CompTempVar560+D'4'
+04C3  3079  	MOVLW 0x79
+04C4  00CF  	MOVWF CompTempVar560+D'5'
+04C5  3065  	MOVLW 0x65
+04C6  00D0  	MOVWF CompTempVar560+D'6'
+04C7  01D1  	CLRF CompTempVar560+D'7'
+04C8  3000  	MOVLW HIGH(CompTempVar560+D'0')
+04C9  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+04CA  30CA  	MOVLW LOW(CompTempVar560+D'0')
+04CB  00C8  	MOVWF ledPrint_00001_arg_s
+04CC  20EF  	CALL ledPrint_00001
+
+        ledWrite();
+04CD  20B9  	CALL ledWrite_00000
+
+        
+        iPower = 0;
+04CE  01AE  	CLRF gbl_iPower
+
+
+        RLY_POWER = 0; // Power off amps
+04CF  1283  	BCF STATUS, RP0
+04D0  1286  	BCF gbl_portb,5
+
+        RLY_BLUETOOTH = 0; // Power off bluetooth
+04D1  1206  	BCF gbl_portb,4
+
+        delay_s(6); // Force a 6 second wait before the ability to switch on again (allows electronics to drain)
+04D2  3006  	MOVLW 0x06
+04D3  1683  	BSF STATUS, RP0
+04D4  00C5  	MOVWF delay_s_00000_arg_del
+04D5  2026  	CALL delay_s_00000
+
+        
+        ledOff();
+04D6  230C  	CALL ledOff_00000
+
+        
+        saveData(); // save data to eeprom to restore after power loss
+04D7  22B8  	CALL saveData_00000
+
+        
+        // Switch on red (for standby)
+        BLUE = 0;
+04D8  1283  	BCF STATUS, RP0
+04D9  1107  	BCF gbl_portc,2
+
+        GREEN = 0;
+04DA  1087  	BCF gbl_portc,1
+
+        RED = 1;
+04DB  1407  	BSF gbl_portc,0
+
+    } else {
+        // Power on sequence
+        // Switch on green (for muted)
+        BLUE = 0;
+04DD  1283  	BCF STATUS, RP0
+04DE  1107  	BCF gbl_portc,2
+
+        GREEN = 1;
+04DF  1487  	BSF gbl_portc,1
+
+        RED = 0;
+04E0  1007  	BCF gbl_portc,0
+
+        
+        ledOn();
+04E1  22F4  	CALL ledOn_00000
+
+        ledPrint("HELLO");
+04E2  3048  	MOVLW 0x48
+04E3  00CA  	MOVWF CompTempVar562
+04E4  3045  	MOVLW 0x45
+04E5  00CB  	MOVWF CompTempVar562+D'1'
+04E6  304C  	MOVLW 0x4C
+04E7  00CC  	MOVWF CompTempVar562+D'2'
+04E8  00CD  	MOVWF CompTempVar562+D'3'
+04E9  304F  	MOVLW 0x4F
+04EA  00CE  	MOVWF CompTempVar562+D'4'
+04EB  01CF  	CLRF CompTempVar562+D'5'
+04EC  3000  	MOVLW HIGH(CompTempVar562+D'0')
+04ED  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+04EE  30CA  	MOVLW LOW(CompTempVar562+D'0')
+04EF  00C8  	MOVWF ledPrint_00001_arg_s
+04F0  20EF  	CALL ledPrint_00001
+
+        ledWrite();
+04F1  20B9  	CALL ledWrite_00000
+
+        
+        // v1.2 add delay after switching LED but before switching amp
+        DELAY_SHORT;
+04F2  3064  	MOVLW 0x64
+04F3  00C6  	MOVWF delay_ms_00000_arg_del
+04F4  201A  	CALL delay_ms_00000
+
+
+        // Power on amps
+        RLY_POWER = 1;
+04F5  1283  	BCF STATUS, RP0
+04F6  1686  	BSF gbl_portb,5
+
+        iPower = 1;
+04F7  3001  	MOVLW 0x01
+04F8  1683  	BSF STATUS, RP0
+04F9  00AE  	MOVWF gbl_iPower
+
+
+        // Delay mute
+        // Flash Green/Blue for 2.6 seconds
+        char l;
+        for (l=0; l<27; l++) {
+04FA  01C5  	CLRF doPower_00000_34_l
+04FB        label75
+04FB  301B  	MOVLW 0x1B
+04FC  0245  	SUBWF doPower_00000_34_l, W
+04FD  1803  	BTFSC STATUS,C
+04FE  2D0F  	GOTO	label76
+050D  0AC5  	INCF doPower_00000_34_l, F
+050E  2CFB  	GOTO	label75
+050F        label76
+
+            // Green off, blue on
+            BLUE = 1;
+04FF  1283  	BCF STATUS, RP0
+0500  1507  	BSF gbl_portc,2
+
+            GREEN = 0;
+0501  1087  	BCF gbl_portc,1
+
+            DELAY_SHORT;
+0502  3064  	MOVLW 0x64
+0503  1683  	BSF STATUS, RP0
+0504  00C6  	MOVWF delay_ms_00000_arg_del
+0505  201A  	CALL delay_ms_00000
+
+            // Blue off, green on
+            BLUE = 0;
+0506  1283  	BCF STATUS, RP0
+0507  1107  	BCF gbl_portc,2
+
+            GREEN = 1;
+0508  1487  	BSF gbl_portc,1
+
+            DELAY_SHORT;
+0509  3064  	MOVLW 0x64
+050A  1683  	BSF STATUS, RP0
+050B  00C6  	MOVWF delay_ms_00000_arg_del
+050C  201A  	CALL delay_ms_00000
+
+        }
+        
+        // Write all values to TDA7439 (since it is now powered) - this will also unmute the volume
+        tda7439WriteAll();
+050F  216E  	CALL tda7439Wri_00018
+
+        // show the volume and input
+        showVolAndInput();
+0510  2223  	CALL showVolAnd_00019
+
+    }
+}
+04DC  0008  	RETURN
+0511  0008  	RETURN
+
+
+/***********************************************************************************
+  Functions to change selected input
+************************************************************************************/
+void doInputUp() {
+
+    // Decrement the active input
+    iActiveInput--;
+0512  1683  	BSF STATUS, RP0
+0513  1303  	BCF STATUS, RP1
+0514  03B0  	DECF gbl_iActiveInput, F
+
+    if (iActiveInput > 4) // If overflowed (less than 0)
+0515  0830  	MOVF gbl_iActiveInput, W
+0516  3C04  	SUBLW 0x04
+0517  1803  	BTFSC STATUS,C
+0518  2D1B  	GOTO	label77
+051B        label77
+
+        iActiveInput = 3;
+0519  3003  	MOVLW 0x03
+051A  00B0  	MOVWF gbl_iActiveInput
+
+    tda7439SetInput();
+051B  21EB  	CALL tda7439Set_0001D
+
+}
+051C  0008  	RETURN
+
+
+void doInputDown() {
+
+    // Increment the active input
+    iActiveInput++;
+051D  1683  	BSF STATUS, RP0
+051E  1303  	BCF STATUS, RP1
+051F  0AB0  	INCF gbl_iActiveInput, F
+
+    if (iActiveInput >= 4)
+0520  3004  	MOVLW 0x04
+0521  0230  	SUBWF gbl_iActiveInput, W
+0522  1803  	BTFSC STATUS,C
+
+        iActiveInput = 0;
+0523  01B0  	CLRF gbl_iActiveInput
+
+    tda7439SetInput();
+0524  21EB  	CALL tda7439Set_0001D
+
+}
+0525  0008  	RETURN
+
+
+/***********************************************************************************
+  I2C methods using MSSP
+  https://www.hobbytronics.co.uk/tutorials-code/tutorials-microchip/hi-tech-c-i2c-master
+************************************************************************************/
+// i2c_Wait - wait for I2C transfer to finish
+void i2cWait(void) {
+
+    // sspcon2 bit 4 ACKEN: Initiate Acknowledge sequence on SDA and SCL pins and transmit ACKDT data bit. Automatically cleared by hardware.
+    // sspcon2 bit 3 RCEN: Enables Receive mode for I2C
+    // sspcon2 bit 2 PEN: Initiate STOP condition on SDA and SCL pins. Automatically cleared by hardware
+    // sspcon2 bit 1 RSEN: Initiate Repeated START condition on SDA and SCL pins. Automatically cleared by hardware.
+    // sspcon2 bit 0 SEN: Initiate START condition on SDA and SCL pins. Automatically cleared by hardware.
+    // sspstat bit 3: Indicates that a START bit has been detected last
+    while ((sspcon2 & 0x1F) || (sspstat & 0x04));
+0045        label5
+0045  301F  	MOVLW 0x1F
+0046  1683  	BSF STATUS, RP0
+0047  1303  	BCF STATUS, RP1
+0048  0511  	ANDWF gbl_sspcon2, W
+0049  1903  	BTFSC STATUS,Z
+004A  1914  	BTFSC gbl_sspstat,2
+004B  2845  	GOTO	label5
+
+}
+004C  0008  	RETURN
+
+
+// i2c_Start - Start I2C communication
+void i2cStart(void) {
+
+    i2cWait();
+009B  2045  	CALL i2cWait_00000
+
+    sspcon2.SEN = 1;
+009C  1411  	BSF gbl_sspcon2,0
+
+}
+009D  0008  	RETURN
+
+
+// i2c_Stop - Stop I2C communication
+void i2cStop(void) {
+
+    i2cWait();
+0098  2045  	CALL i2cWait_00000
+
+    sspcon2.PEN = 1;
+0099  1511  	BSF gbl_sspcon2,2
+
+}
+009A  0008  	RETURN
+
+
+// i2cWrite - Sends one byte of data
+void i2cWrite(char data) {
+
+    i2cWait();
+0093  2045  	CALL i2cWait_00000
+
+    sspbuf = data;
+0094  0847  	MOVF i2cWrite_00000_arg_data, W
+0095  1283  	BCF STATUS, RP0
+0096  0093  	MOVWF gbl_sspbuf
+
+}
+0097  0008  	RETURN
+
+
+/***********************************************************************************
+  TDA7439 methods
+  Sub addresses:
+  0x00 = input selector (data 0x00 to 0x03)
+  0x01 = input gain (data 0x00 to 0x0F - for 0dB to 30dB)
+  0x02 = volume (data 0x00 to 0x38  or 0 to 56 for attenuation in 1dB steps. 56 = mute)
+  0x03 = bass gain (data 0x00 to 0x06 for -14dB to -2dB, 0x07 for 0dB, 0x08 to 0x0E for 14dB to 2dB)
+  0x04 = mid gain (data 0x00 to 0x06 for -14dB to -2dB, 0x07 for 0dB, 0x08 to 0x0E for 14dB to 2dB)
+  0x05 = treble gain (data 0x00 to 0x06 for -14dB to -2dB, 0x07 for 0dB, 0x08 to 0x0E for 14dB to 2dB)
+  0x06 = R speaker attenuation (data 0x00 to 0x78 or 0 to 120 in 1dB steps. >=78 = mute)
+  0x07 = L speaker attenuation (data 0x00 to 0x78 or 0 to 120 in 1dB steps. >=78 = mute)
+************************************************************************************/
+void tda7439Write(char bSubAddress, char bData) {
+
+    i2cStart();
+00AB  209B  	CALL i2cStart_00000
+
+    i2cWrite(tda7439_addr); // send TDA7439 i2c address
+00AC  3088  	MOVLW 0x88
+00AD  00C7  	MOVWF i2cWrite_00000_arg_data
+00AE  2093  	CALL i2cWrite_00000
+
+    i2cWrite(bSubAddress); // send TDA7439 sub address
+00AF  1683  	BSF STATUS, RP0
+00B0  0845  	MOVF tda7439Wri_0001F_arg_bSubAddress, W
+00B1  00C7  	MOVWF i2cWrite_00000_arg_data
+00B2  2093  	CALL i2cWrite_00000
+
+    i2cWrite(bData); // send data byte
+00B3  1683  	BSF STATUS, RP0
+00B4  0846  	MOVF tda7439Wri_0001F_arg_bData, W
+00B5  00C7  	MOVWF i2cWrite_00000_arg_data
+00B6  2093  	CALL i2cWrite_00000
+
+    i2cStop();
+00B7  2098  	CALL i2cStop_00000
+
+}
+00B8  0008  	RETURN
+
+
+void tda7439SetVolume() {
+
+    if (iMute)
+0212  1683  	BSF STATUS, RP0
+0213  1303  	BCF STATUS, RP1
+0214  08B2  	MOVF gbl_iMute, F
+0215  1903  	BTFSC STATUS,Z
+0216  2A1D  	GOTO	label30
+021D        label30
+
+        tda7439Write(0x02, 56);
+0217  3002  	MOVLW 0x02
+0218  00C5  	MOVWF tda7439Wri_0001F_arg_bSubAddress
+0219  3038  	MOVLW 0x38
+021A  00C6  	MOVWF tda7439Wri_0001F_arg_bData
+021B  20AB  	CALL tda7439Wri_0001F
+
+    else
+        tda7439Write(0x02, iVolume);
+021D  3002  	MOVLW 0x02
+021E  00C5  	MOVWF tda7439Wri_0001F_arg_bSubAddress
+021F  0831  	MOVF gbl_iVolume, W
+0220  00C6  	MOVWF tda7439Wri_0001F_arg_bData
+0221  20AB  	CALL tda7439Wri_0001F
+
+}
+021C  0008  	RETURN
+0222  0008  	RETURN
+
+
+void tda7439SetInput() {
+
+    RLY_BLUETOOTH = (iActiveInput == 3);
+01EB  1683  	BSF STATUS, RP0
+01EC  1303  	BCF STATUS, RP1
+01ED  01C5  	CLRF CompTempVar582
+01EE  3003  	MOVLW 0x03
+01EF  0230  	SUBWF gbl_iActiveInput, W
+01F0  1903  	BTFSC STATUS,Z
+01F1  0AC5  	INCF CompTempVar582, F
+01F2  1C45  	BTFSS CompTempVar582,0
+01F3  29F6  	GOTO	label28
+01F4  1283  	BCF STATUS, RP0
+01F5  1606  	BSF gbl_portb,4
+01F6  1683  	BSF STATUS, RP0
+01F7  1845  	BTFSC CompTempVar582,0
+01F8  29FB  	GOTO	label29
+01F9  1283  	BCF STATUS, RP0
+01FA  1206  	BCF gbl_portb,4
+
+    i2cStart();
+01FB  209B  	CALL i2cStart_00000
+
+    i2cWrite(tda7439_addr); // send TDA7439 i2c address
+01FC  3088  	MOVLW 0x88
+01FD  00C7  	MOVWF i2cWrite_00000_arg_data
+01FE  2093  	CALL i2cWrite_00000
+
+    i2cWrite(0x10); // send TDA7439 sub address - 0x10 will increment address from 0 to 7 (all of them)
+01FF  3010  	MOVLW 0x10
+0200  1683  	BSF STATUS, RP0
+0201  00C7  	MOVWF i2cWrite_00000_arg_data
+0202  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iActiveInput); // send data byte
+0203  1683  	BSF STATUS, RP0
+0204  0830  	MOVF gbl_iActiveInput, W
+0205  00C7  	MOVWF i2cWrite_00000_arg_data
+0206  2093  	CALL i2cWrite_00000
+
+    i2cWrite(tda7439_gains[iActiveInput]); // send data byte
+0207  1383  	BCF	STATUS,IRP
+0208  307B  	MOVLW LOW(gbl_tda7439_gains+D'0')
+0209  0084  	MOVWF FSR
+020A  1683  	BSF STATUS, RP0
+020B  0830  	MOVF gbl_iActiveInput, W
+020C  0784  	ADDWF FSR, F
+020D  0800  	MOVF INDF, W
+020E  00C7  	MOVWF i2cWrite_00000_arg_data
+020F  2093  	CALL i2cWrite_00000
+
+    i2cStop();
+0210  2098  	CALL i2cStop_00000
+
+}
+0211  0008  	RETURN
+
+
+void tda7439SetBass() {
+
+    tda7439Write(0x03, iBass);
+01E3  3003  	MOVLW 0x03
+01E4  1683  	BSF STATUS, RP0
+01E5  1303  	BCF STATUS, RP1
+01E6  00C5  	MOVWF tda7439Wri_0001F_arg_bSubAddress
+01E7  0836  	MOVF gbl_iBass, W
+01E8  00C6  	MOVWF tda7439Wri_0001F_arg_bData
+01E9  20AB  	CALL tda7439Wri_0001F
+
+}
+01EA  0008  	RETURN
+
+
+void tda7439SetMid() {
+
+    tda7439Write(0x04, iMid);
+01DB  3004  	MOVLW 0x04
+01DC  1683  	BSF STATUS, RP0
+01DD  1303  	BCF STATUS, RP1
+01DE  00C5  	MOVWF tda7439Wri_0001F_arg_bSubAddress
+01DF  0837  	MOVF gbl_iMid, W
+01E0  00C6  	MOVWF tda7439Wri_0001F_arg_bData
+01E1  20AB  	CALL tda7439Wri_0001F
+
+}
+01E2  0008  	RETURN
+
+
+void tda7439SetTreble() {
+
+    tda7439Write(0x05, iTreble);
+01D3  3005  	MOVLW 0x05
+01D4  1683  	BSF STATUS, RP0
+01D5  1303  	BCF STATUS, RP1
+01D6  00C5  	MOVWF tda7439Wri_0001F_arg_bSubAddress
+01D7  0838  	MOVF gbl_iTreble, W
+01D8  00C6  	MOVWF tda7439Wri_0001F_arg_bData
+01D9  20AB  	CALL tda7439Wri_0001F
+
+}
+01DA  0008  	RETURN
+
+
+void tda7439SetBalance() {
+
+    // use address incrementing
+    i2cStart();
+01B7  209B  	CALL i2cStart_00000
+
+    i2cWrite(tda7439_addr); // send TDA7439 i2c address
+01B8  3088  	MOVLW 0x88
+01B9  00C7  	MOVWF i2cWrite_00000_arg_data
+01BA  2093  	CALL i2cWrite_00000
+
+    i2cWrite(0x16); // send TDA7439 sub address - 0x16 will increment address from 6 to 7 (r+l attenuation)
+01BB  3016  	MOVLW 0x16
+01BC  1683  	BSF STATUS, RP0
+01BD  00C7  	MOVWF i2cWrite_00000_arg_data
+01BE  2093  	CALL i2cWrite_00000
+
+    if (iAttenuateL > 0) {
+01BF  1683  	BSF STATUS, RP0
+01C0  0834  	MOVF gbl_iAttenuateL, W
+01C1  3C00  	SUBLW 0x00
+01C2  1803  	BTFSC STATUS,C
+01C3  29CB  	GOTO	label26
+01CB        label26
+
+        // If balance is negative, attenuate L speaker
+        i2cWrite(0);
+01C4  01C7  	CLRF i2cWrite_00000_arg_data
+01C5  2093  	CALL i2cWrite_00000
+
+        i2cWrite(iAttenuateL);
+01C6  1683  	BSF STATUS, RP0
+01C7  0834  	MOVF gbl_iAttenuateL, W
+01C8  00C7  	MOVWF i2cWrite_00000_arg_data
+01C9  2093  	CALL i2cWrite_00000
+
+    } else {
+01CA  29D1  	GOTO	label27
+01D1        label27
+
+        // otherwise attenuate R speaker
+        i2cWrite(iAttenuateR);
+01CB  0835  	MOVF gbl_iAttenuateR, W
+01CC  00C7  	MOVWF i2cWrite_00000_arg_data
+01CD  2093  	CALL i2cWrite_00000
+
+        i2cWrite(0);
+01CE  1683  	BSF STATUS, RP0
+01CF  01C7  	CLRF i2cWrite_00000_arg_data
+01D0  2093  	CALL i2cWrite_00000
+
+    }
+    i2cStop();
+01D1  2098  	CALL i2cStop_00000
+
+}
+01D2  0008  	RETURN
+
+
+void tda7439WriteAll() {
+
+    RLY_BLUETOOTH = (iActiveInput == 3);
+016E  1683  	BSF STATUS, RP0
+016F  1303  	BCF STATUS, RP1
+0170  01C6  	CLRF CompTempVar564
+0171  3003  	MOVLW 0x03
+0172  0230  	SUBWF gbl_iActiveInput, W
+0173  1903  	BTFSC STATUS,Z
+0174  0AC6  	INCF CompTempVar564, F
+0175  1C46  	BTFSS CompTempVar564,0
+0176  2979  	GOTO	label22
+0177  1283  	BCF STATUS, RP0
+0178  1606  	BSF gbl_portb,4
+0179  1683  	BSF STATUS, RP0
+017A  1846  	BTFSC CompTempVar564,0
+017B  297E  	GOTO	label23
+017C  1283  	BCF STATUS, RP0
+017D  1206  	BCF gbl_portb,4
+
+    // use address incrementing
+    i2cStart();
+017E  209B  	CALL i2cStart_00000
+
+    i2cWrite(tda7439_addr); // send TDA7439 i2c address
+017F  3088  	MOVLW 0x88
+0180  00C7  	MOVWF i2cWrite_00000_arg_data
+0181  2093  	CALL i2cWrite_00000
+
+    i2cWrite(0x10); // send TDA7439 sub address - 0x10 will increment address from 0 to 7 (all of them)
+0182  3010  	MOVLW 0x10
+0183  1683  	BSF STATUS, RP0
+0184  00C7  	MOVWF i2cWrite_00000_arg_data
+0185  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iActiveInput); // send data byte
+0186  1683  	BSF STATUS, RP0
+0187  0830  	MOVF gbl_iActiveInput, W
+0188  00C7  	MOVWF i2cWrite_00000_arg_data
+0189  2093  	CALL i2cWrite_00000
+
+    i2cWrite(tda7439_gains[iActiveInput]); // send data byte
+018A  1383  	BCF	STATUS,IRP
+018B  307B  	MOVLW LOW(gbl_tda7439_gains+D'0')
+018C  0084  	MOVWF FSR
+018D  1683  	BSF STATUS, RP0
+018E  0830  	MOVF gbl_iActiveInput, W
+018F  0784  	ADDWF FSR, F
+0190  0800  	MOVF INDF, W
+0191  00C7  	MOVWF i2cWrite_00000_arg_data
+0192  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iVolume); // send data byte
+0193  1683  	BSF STATUS, RP0
+0194  0831  	MOVF gbl_iVolume, W
+0195  00C7  	MOVWF i2cWrite_00000_arg_data
+0196  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iBass); // send data byte
+0197  1683  	BSF STATUS, RP0
+0198  0836  	MOVF gbl_iBass, W
+0199  00C7  	MOVWF i2cWrite_00000_arg_data
+019A  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iMid); // send data byte
+019B  1683  	BSF STATUS, RP0
+019C  0837  	MOVF gbl_iMid, W
+019D  00C7  	MOVWF i2cWrite_00000_arg_data
+019E  2093  	CALL i2cWrite_00000
+
+    i2cWrite(iTreble); // send data byte
+019F  1683  	BSF STATUS, RP0
+01A0  0838  	MOVF gbl_iTreble, W
+01A1  00C7  	MOVWF i2cWrite_00000_arg_data
+01A2  2093  	CALL i2cWrite_00000
+
+    if (iAttenuateL > 0) {
+01A3  1683  	BSF STATUS, RP0
+01A4  0834  	MOVF gbl_iAttenuateL, W
+01A5  3C00  	SUBLW 0x00
+01A6  1803  	BTFSC STATUS,C
+01A7  29AF  	GOTO	label24
+01AF        label24
+
+        // If balance is negative, attenuate L speaker
+        i2cWrite(0);
+01A8  01C7  	CLRF i2cWrite_00000_arg_data
+01A9  2093  	CALL i2cWrite_00000
+
+        i2cWrite(iAttenuateL);
+01AA  1683  	BSF STATUS, RP0
+01AB  0834  	MOVF gbl_iAttenuateL, W
+01AC  00C7  	MOVWF i2cWrite_00000_arg_data
+01AD  2093  	CALL i2cWrite_00000
+
+    } else {
+01AE  29B5  	GOTO	label25
+01B5        label25
+
+        // otherwise attenuate R speaker
+        i2cWrite(iAttenuateR);
+01AF  0835  	MOVF gbl_iAttenuateR, W
+01B0  00C7  	MOVWF i2cWrite_00000_arg_data
+01B1  2093  	CALL i2cWrite_00000
+
+        i2cWrite(0);
+01B2  1683  	BSF STATUS, RP0
+01B3  01C7  	CLRF i2cWrite_00000_arg_data
+01B4  2093  	CALL i2cWrite_00000
+
+    }
+    i2cStop();
+01B5  2098  	CALL i2cStop_00000
+
+}
+01B6  0008  	RETURN
+
+
+/***********************************************************************************
+  Functions for volume control
+************************************************************************************/
+void doVolumeUp() {
+
+    // Increase level (decrease attenuation --)
+    if (iVolume == 56) { // come out of mute
+0491  1683  	BSF STATUS, RP0
+0492  1303  	BCF STATUS, RP1
+0493  0831  	MOVF gbl_iVolume, W
+0494  3A38  	XORLW 0x38
+0495  1D03  	BTFSS STATUS,Z
+0496  2C9B  	GOTO	label71
+049B        label71
+
+        iMute = 0;
+0497  01B2  	CLRF gbl_iMute
+
+        iVolume = 47;
+0498  302F  	MOVLW 0x2F
+0499  00B1  	MOVWF gbl_iVolume
+
+    } else {
+049A  2C9C  	GOTO	label72
+049C        label72
+
+        iVolume--;
+049B  03B1  	DECF gbl_iVolume, F
+
+    }
+    
+    if (iVolume > 56) { // overflowed
+049C  0831  	MOVF gbl_iVolume, W
+049D  3C38  	SUBLW 0x38
+049E  1C03  	BTFSS STATUS,C
+
+        iVolume = 0;
+049F  01B1  	CLRF gbl_iVolume
+
+    }
+    tda7439SetVolume();
+04A0  2212  	CALL tda7439Set_0001A
+
+}
+04A1  0008  	RETURN
+
+
+void doVolumeDown() {
+
+    // Decrease level (increase attenuation ++)
+    iVolume++;
+04A2  1683  	BSF STATUS, RP0
+04A3  1303  	BCF STATUS, RP1
+04A4  0AB1  	INCF gbl_iVolume, F
+
+    if (iVolume > 47) { // muted
+04A5  0831  	MOVF gbl_iVolume, W
+04A6  3C2F  	SUBLW 0x2F
+04A7  1803  	BTFSC STATUS,C
+04A8  2CAD  	GOTO	label73
+04AD        label73
+
+        iMute = 1;
+04A9  3001  	MOVLW 0x01
+04AA  00B2  	MOVWF gbl_iMute
+
+        iVolume = 56;
+04AB  3038  	MOVLW 0x38
+04AC  00B1  	MOVWF gbl_iVolume
+
+    }
+    tda7439SetVolume();
+04AD  2212  	CALL tda7439Set_0001A
+
+}
+04AE  0008  	RETURN
+
+
+/***********************************************************************************
+  Function to toggle muting on/off
+************************************************************************************/
+void doMute() {
+
+    // toggle mute status
+    if (iMute == 1) 
+05E1  1683  	BSF STATUS, RP0
+05E2  1303  	BCF STATUS, RP1
+05E3  0332  	DECF gbl_iMute, W
+05E4  1D03  	BTFSS STATUS,Z
+05E5  2DE8  	GOTO	label92
+05E8        label92
+
+        iMute = 0;
+05E6  01B2  	CLRF gbl_iMute
+
+    else
+05E7  2DEA  	GOTO	label93
+05EA        label93
+
+        iMute = 1;
+05E8  3001  	MOVLW 0x01
+05E9  00B2  	MOVWF gbl_iMute
+
+    // set the volume
+    tda7439SetVolume();
+05EA  2212  	CALL tda7439Set_0001A
+
+}
+05EB  0008  	RETURN
+
+
+
+/***********************************************************************************
+  Function to print the current input and volume to the LED display
+************************************************************************************/
+void showVolAndInput() {
+
+    if (iMute) {
+0223  1683  	BSF STATUS, RP0
+0224  1303  	BCF STATUS, RP1
+0225  08B2  	MOVF gbl_iMute, F
+0226  1903  	BTFSC STATUS,Z
+0227  2A3D  	GOTO	label31
+023D        label31
+
+        ledPrint("Snd OFF"); // Media Centre PC
+0228  3053  	MOVLW 0x53
+0229  00CA  	MOVWF CompTempVar568
+022A  306E  	MOVLW 0x6E
+022B  00CB  	MOVWF CompTempVar568+D'1'
+022C  3064  	MOVLW 0x64
+022D  00CC  	MOVWF CompTempVar568+D'2'
+022E  3020  	MOVLW 0x20
+022F  00CD  	MOVWF CompTempVar568+D'3'
+0230  304F  	MOVLW 0x4F
+0231  00CE  	MOVWF CompTempVar568+D'4'
+0232  3046  	MOVLW 0x46
+0233  00CF  	MOVWF CompTempVar568+D'5'
+0234  00D0  	MOVWF CompTempVar568+D'6'
+0235  01D1  	CLRF CompTempVar568+D'7'
+0236  3000  	MOVLW HIGH(CompTempVar568+D'0')
+0237  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+0238  30CA  	MOVLW LOW(CompTempVar568+D'0')
+0239  00C8  	MOVWF ledPrint_00001_arg_s
+023A  20EF  	CALL ledPrint_00001
+
+        ledWrite();
+023B  20B9  	CALL ledWrite_00000
+
+    } else {
+023C  2AA9  	GOTO	label39
+02A9        label39
+
+        // show the input on the first 3 characters
+        switch (iActiveInput) {
+024A  2A7E  	GOTO	label36
+027E        label36
+
+            case 0:
+023D  0830  	MOVF gbl_iActiveInput, W
+023E  3A00  	XORLW 0x00
+023F  1903  	BTFSC STATUS,Z
+0240  2A4B  	GOTO	label32
+024B        label32
+
+                ledPrint("In3"); // Bluetooth
+024B  3049  	MOVLW 0x49
+024C  00CA  	MOVWF CompTempVar571
+024D  306E  	MOVLW 0x6E
+024E  00CB  	MOVWF CompTempVar571+D'1'
+024F  3033  	MOVLW 0x33
+0250  00CC  	MOVWF CompTempVar571+D'2'
+0251  01CD  	CLRF CompTempVar571+D'3'
+0252  3000  	MOVLW HIGH(CompTempVar571+D'0')
+0253  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+0254  30CA  	MOVLW LOW(CompTempVar571+D'0')
+0255  00C8  	MOVWF ledPrint_00001_arg_s
+0256  20EF  	CALL ledPrint_00001
+
+                break;
+0257  2A7E  	GOTO	label36
+
+            case 1:
+0241  3A01  	XORLW 0x01
+0242  1903  	BTFSC STATUS,Z
+0243  2A58  	GOTO	label33
+0258        label33
+
+                ledPrint("In2"); // Input 1
+0258  3049  	MOVLW 0x49
+0259  00CA  	MOVWF CompTempVar573
+025A  306E  	MOVLW 0x6E
+025B  00CB  	MOVWF CompTempVar573+D'1'
+025C  3032  	MOVLW 0x32
+025D  00CC  	MOVWF CompTempVar573+D'2'
+025E  01CD  	CLRF CompTempVar573+D'3'
+025F  3000  	MOVLW HIGH(CompTempVar573+D'0')
+0260  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+0261  30CA  	MOVLW LOW(CompTempVar573+D'0')
+0262  00C8  	MOVWF ledPrint_00001_arg_s
+0263  20EF  	CALL ledPrint_00001
+
+                break;
+0264  2A7E  	GOTO	label36
+
+            case 2:
+0244  3A03  	XORLW 0x03
+0245  1903  	BTFSC STATUS,Z
+0246  2A65  	GOTO	label34
+0265        label34
+
+                ledPrint("In1"); // Input 1
+0265  3049  	MOVLW 0x49
+0266  00CA  	MOVWF CompTempVar575
+0267  306E  	MOVLW 0x6E
+0268  00CB  	MOVWF CompTempVar575+D'1'
+0269  3031  	MOVLW 0x31
+026A  00CC  	MOVWF CompTempVar575+D'2'
+026B  01CD  	CLRF CompTempVar575+D'3'
+026C  3000  	MOVLW HIGH(CompTempVar575+D'0')
+026D  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+026E  30CA  	MOVLW LOW(CompTempVar575+D'0')
+026F  00C8  	MOVWF ledPrint_00001_arg_s
+0270  20EF  	CALL ledPrint_00001
+
+                break;
+0271  2A7E  	GOTO	label36
+
+            case 3:
+0247  3A01  	XORLW 0x01
+0248  1903  	BTFSC STATUS,Z
+0249  2A72  	GOTO	label35
+0272        label35
+
+                ledPrint("blu"); // Input 3
+0272  3062  	MOVLW 0x62
+0273  00CA  	MOVWF CompTempVar577
+0274  306C  	MOVLW 0x6C
+0275  00CB  	MOVWF CompTempVar577+D'1'
+0276  3075  	MOVLW 0x75
+0277  00CC  	MOVWF CompTempVar577+D'2'
+0278  01CD  	CLRF CompTempVar577+D'3'
+0279  3000  	MOVLW HIGH(CompTempVar577+D'0')
+027A  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+027B  30CA  	MOVLW LOW(CompTempVar577+D'0')
+027C  00C8  	MOVWF ledPrint_00001_arg_s
+027D  20EF  	CALL ledPrint_00001
+
+                break;
+        }
+        // show volume on next 5 characters e.g. -18db
+        // Volume can be 0 to 55
+        // Invert the volume to a negative gain (as a positive number) i.e. -56 to 0
+        char cGain = iVolume;
+027E  0831  	MOVF gbl_iVolume, W
+027F  00C6  	MOVWF showVolAnd_00019_8_cGain
+
+        // work out an adjustment to gain based on the input gain value
+        char cGainAdj = (tda7439_gains[iActiveInput] * 2);
+0280  1383  	BCF	STATUS,IRP
+0281  307B  	MOVLW LOW(gbl_tda7439_gains+D'0')
+0282  0084  	MOVWF FSR
+0283  0830  	MOVF gbl_iActiveInput, W
+0284  0784  	ADDWF FSR, F
+0285  0800  	MOVF INDF, W
+0286  00C7  	MOVWF showVolAnd_00019_8_cGainAdj
+0287  1003  	BCF STATUS,C
+0288  0DC7  	RLF showVolAnd_00019_8_cGainAdj, F
+
+        // adjust the final gain
+        if (cGain < cGainAdj) {
+0289  0847  	MOVF showVolAnd_00019_8_cGainAdj, W
+028A  0246  	SUBWF showVolAnd_00019_8_cGain, W
+028B  1803  	BTFSC STATUS,C
+028C  2A92  	GOTO	label37
+0292        label37
+
+            ledData1[3] = 0;
+028D  01A3  	CLRF gbl_ledData1+D'3'
+
+            cGain = cGainAdj - cGain;
+028E  0846  	MOVF showVolAnd_00019_8_cGain, W
+028F  0247  	SUBWF showVolAnd_00019_8_cGainAdj, W
+0290  00C6  	MOVWF showVolAnd_00019_8_cGain
+
+        } else {
+0291  2A99  	GOTO	label38
+0299        label38
+
+            // negative gain (attenuation)
+            ledChar(3, '-');
+0292  3003  	MOVLW 0x03
+0293  00D3  	MOVWF ledChar_00000_arg_iCol
+0294  302D  	MOVLW 0x2D
+0295  00D4  	MOVWF ledChar_00000_arg_iChar
+0296  2035  	CALL ledChar_00000
+
+            cGain -= cGainAdj;
+0297  0847  	MOVF showVolAnd_00019_8_cGainAdj, W
+0298  02C6  	SUBWF showVolAnd_00019_8_cGain, F
+
+        }
+        
+        ledSetDigits(cGain, 4);
+0299  0846  	MOVF showVolAnd_00019_8_cGain, W
+029A  00C8  	MOVWF ledSetDigi_0001B_arg_iValue
+029B  3004  	MOVLW 0x04
+029C  00C9  	MOVWF ledSetDigi_0001B_arg_iCol
+029D  204D  	CALL ledSetDigi_0001B
+
+        
+        ledChar(6, 'd'); 
+029E  3006  	MOVLW 0x06
+029F  00D3  	MOVWF ledChar_00000_arg_iCol
+02A0  3064  	MOVLW 0x64
+02A1  00D4  	MOVWF ledChar_00000_arg_iChar
+02A2  2035  	CALL ledChar_00000
+
+        ledChar(7, 'b'); 
+02A3  3007  	MOVLW 0x07
+02A4  00D3  	MOVWF ledChar_00000_arg_iCol
+02A5  3062  	MOVLW 0x62
+02A6  00D4  	MOVWF ledChar_00000_arg_iChar
+02A7  2035  	CALL ledChar_00000
+
+        // Write Result to LED display
+        ledWrite();
+02A8  20B9  	CALL ledWrite_00000
+
+    }
+    
+    // Display green LED if volume is 0 (effectively mute) or mute is on
+    if ((iVolume == 56) || iMute) {
+02A9  0831  	MOVF gbl_iVolume, W
+02AA  3A38  	XORLW 0x38
+02AB  1903  	BTFSC STATUS,Z
+02AC  2AB0  	GOTO	label40
+02AD  08B2  	MOVF gbl_iMute, F
+02AE  1903  	BTFSC STATUS,Z
+02AF  2AB4  	GOTO	label41
+02B0        label40
+02B4        label41
+
+        // Green on, blue off
+        BLUE = 0;
+02B0  1283  	BCF STATUS, RP0
+02B1  1107  	BCF gbl_portc,2
+
+        GREEN = 1;
+02B2  1487  	BSF gbl_portc,1
+
+    } else {
+        // Green off, blue on
+        BLUE = 1;
+02B4  1283  	BCF STATUS, RP0
+02B5  1507  	BSF gbl_portc,2
+
+        GREEN = 0;
+02B6  1087  	BCF gbl_portc,1
+
+    }
+}
+02B3  0008  	RETURN
+02B7  0008  	RETURN
+
+
+/***********************************************************************************
+  Functions to display and adjust amp functions i.e. bass, treble, balance
+************************************************************************************/
+void functionValueDisplay(char iValue) {
+
+    // translate value to dB
+    char isCut = 0;//(iValue < 7);
+0113  01C6  	CLRF functionVa_00024_1_isCut
+
+    if (iValue == 7) {
+0114  0845  	MOVF functionVa_00024_arg_iValue, W
+0115  3A07  	XORLW 0x07
+0116  1D03  	BTFSS STATUS,Z
+0117  291A  	GOTO	label16
+011A        label16
+
+        // flat
+        iValue = 0;
+0118  01C5  	CLRF functionVa_00024_arg_iValue
+
+    } else if (iValue > 7) {
+0119  292D  	GOTO	label18
+011A  0845  	MOVF functionVa_00024_arg_iValue, W
+011B  3C07  	SUBLW 0x07
+011C  1803  	BTFSC STATUS,C
+011D  2925  	GOTO	label17
+0125        label17
+
+        // boost
+        // 14=2dB 13=4dB ... 8=14dB
+        iValue = (15 - iValue) * 2;
+011E  0845  	MOVF functionVa_00024_arg_iValue, W
+011F  3C0F  	SUBLW 0x0F
+0120  00C7  	MOVWF CompTempVar587
+0121  1003  	BCF STATUS,C
+0122  0D47  	RLF CompTempVar587, W
+0123  00C5  	MOVWF functionVa_00024_arg_iValue
+
+    } else {
+0124  292D  	GOTO	label18
+012D        label18
+
+        // cut 0=-14dB 1=-12db ... 6=-2dB
+        isCut = 1;
+0125  3001  	MOVLW 0x01
+0126  00C6  	MOVWF functionVa_00024_1_isCut
+
+        iValue = (7 - iValue) * 2;
+0127  0845  	MOVF functionVa_00024_arg_iValue, W
+0128  3C07  	SUBLW 0x07
+0129  00C7  	MOVWF CompTempVar589
+012A  1003  	BCF STATUS,C
+012B  0D47  	RLF CompTempVar589, W
+012C  00C5  	MOVWF functionVa_00024_arg_iValue
+
+    }
+    // write characters to array
+    if (isCut)
+012D  08C6  	MOVF functionVa_00024_1_isCut, F
+012E  1903  	BTFSC STATUS,Z
+012F  2935  	GOTO	label19
+0135        label19
+
+        ledChar(4, '-');
+0130  3004  	MOVLW 0x04
+0131  00D3  	MOVWF ledChar_00000_arg_iCol
+0132  302D  	MOVLW 0x2D
+0133  00D4  	MOVWF ledChar_00000_arg_iChar
+0134  2035  	CALL ledChar_00000
+
+    ledSetDigits(iValue, 5);
+0135  0845  	MOVF functionVa_00024_arg_iValue, W
+0136  00C8  	MOVWF ledSetDigi_0001B_arg_iValue
+0137  3005  	MOVLW 0x05
+0138  00C9  	MOVWF ledSetDigi_0001B_arg_iCol
+0139  204D  	CALL ledSetDigi_0001B
+
+}
+013A  0008  	RETURN
+
+
+void functionDisplay() {
+
+    switch (iFunctionMode) {
+0351  2BC9  	GOTO	label54
+
+        case 1: // Bass
+0342  1683  	BSF STATUS, RP0
+0343  1303  	BCF STATUS, RP1
+0344  0839  	MOVF gbl_iFunctionMode, W
+0345  3A01  	XORLW 0x01
+0346  1903  	BTFSC STATUS,Z
+0347  2B52  	GOTO	label48
+0352        label48
+
+            ledPrint("bASS"); // Bass
+0352  3062  	MOVLW 0x62
+0353  00CA  	MOVWF CompTempVar590
+0354  3041  	MOVLW 0x41
+0355  00CB  	MOVWF CompTempVar590+D'1'
+0356  3053  	MOVLW 0x53
+0357  00CC  	MOVWF CompTempVar590+D'2'
+0358  00CD  	MOVWF CompTempVar590+D'3'
+0359  01CE  	CLRF CompTempVar590+D'4'
+035A  3000  	MOVLW HIGH(CompTempVar590+D'0')
+035B  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+035C  30CA  	MOVLW LOW(CompTempVar590+D'0')
+035D  00C8  	MOVWF ledPrint_00001_arg_s
+035E  20EF  	CALL ledPrint_00001
+
+            functionValueDisplay(iMid);
+035F  0837  	MOVF gbl_iMid, W
+0360  00C5  	MOVWF functionVa_00024_arg_iValue
+0361  2113  	CALL functionVa_00024
+
+            break;
+0362  2BC9  	GOTO	label54
+
+        case 2: // Treble
+0348  3A03  	XORLW 0x03
+0349  1903  	BTFSC STATUS,Z
+034A  2B63  	GOTO	label49
+0363        label49
+
+            ledPrint("Treb"); // Treble
+0363  3054  	MOVLW 0x54
+0364  00CA  	MOVWF CompTempVar592
+0365  3072  	MOVLW 0x72
+0366  00CB  	MOVWF CompTempVar592+D'1'
+0367  3065  	MOVLW 0x65
+0368  00CC  	MOVWF CompTempVar592+D'2'
+0369  3062  	MOVLW 0x62
+036A  00CD  	MOVWF CompTempVar592+D'3'
+036B  01CE  	CLRF CompTempVar592+D'4'
+036C  3000  	MOVLW HIGH(CompTempVar592+D'0')
+036D  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+036E  30CA  	MOVLW LOW(CompTempVar592+D'0')
+036F  00C8  	MOVWF ledPrint_00001_arg_s
+0370  20EF  	CALL ledPrint_00001
+
+            functionValueDisplay(iTreble);
+0371  0838  	MOVF gbl_iTreble, W
+0372  00C5  	MOVWF functionVa_00024_arg_iValue
+0373  2113  	CALL functionVa_00024
+
+            break;
+0374  2BC9  	GOTO	label54
+
+        case 3: // Lo Bass
+034B  3A01  	XORLW 0x01
+034C  1903  	BTFSC STATUS,Z
+034D  2B75  	GOTO	label50
+0375        label50
+
+            ledPrint("Lo b"); // Lo Bass
+0375  304C  	MOVLW 0x4C
+0376  00CA  	MOVWF CompTempVar594
+0377  306F  	MOVLW 0x6F
+0378  00CB  	MOVWF CompTempVar594+D'1'
+0379  3020  	MOVLW 0x20
+037A  00CC  	MOVWF CompTempVar594+D'2'
+037B  3062  	MOVLW 0x62
+037C  00CD  	MOVWF CompTempVar594+D'3'
+037D  01CE  	CLRF CompTempVar594+D'4'
+037E  3000  	MOVLW HIGH(CompTempVar594+D'0')
+037F  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+0380  30CA  	MOVLW LOW(CompTempVar594+D'0')
+0381  00C8  	MOVWF ledPrint_00001_arg_s
+0382  20EF  	CALL ledPrint_00001
+
+            functionValueDisplay(iBass);
+0383  0836  	MOVF gbl_iBass, W
+0384  00C5  	MOVWF functionVa_00024_arg_iValue
+0385  2113  	CALL functionVa_00024
+
+            break;
+0386  2BC9  	GOTO	label54
+
+        case 4: // Balance
+034E  3A07  	XORLW 0x07
+034F  1903  	BTFSC STATUS,Z
+0350  2B87  	GOTO	label51
+0387        label51
+
+            if (iAttenuateL > 0) { // left attenuation
+0387  0834  	MOVF gbl_iAttenuateL, W
+0388  3C00  	SUBLW 0x00
+0389  1803  	BTFSC STATUS,C
+038A  2B9F  	GOTO	label52
+039F        label52
+
+                ledPrint("L   -"); // Balance
+038B  304C  	MOVLW 0x4C
+038C  00CA  	MOVWF CompTempVar596
+038D  3020  	MOVLW 0x20
+038E  00CB  	MOVWF CompTempVar596+D'1'
+038F  00CC  	MOVWF CompTempVar596+D'2'
+0390  00CD  	MOVWF CompTempVar596+D'3'
+0391  302D  	MOVLW 0x2D
+0392  00CE  	MOVWF CompTempVar596+D'4'
+0393  01CF  	CLRF CompTempVar596+D'5'
+0394  3000  	MOVLW HIGH(CompTempVar596+D'0')
+0395  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+0396  30CA  	MOVLW LOW(CompTempVar596+D'0')
+0397  00C8  	MOVWF ledPrint_00001_arg_s
+0398  20EF  	CALL ledPrint_00001
+
+                ledSetDigits(iAttenuateL, 5);
+0399  0834  	MOVF gbl_iAttenuateL, W
+039A  00C8  	MOVWF ledSetDigi_0001B_arg_iValue
+039B  3005  	MOVLW 0x05
+039C  00C9  	MOVWF ledSetDigi_0001B_arg_iCol
+039D  204D  	CALL ledSetDigi_0001B
+
+            } else if (iAttenuateR > 0) {
+039E  2BC9  	GOTO	label54
+039F  0835  	MOVF gbl_iAttenuateR, W
+03A0  3C00  	SUBLW 0x00
+03A1  1803  	BTFSC STATUS,C
+03A2  2BB7  	GOTO	label53
+03B7        label53
+
+                ledPrint("r   -"); // Balance
+03A3  3072  	MOVLW 0x72
+03A4  00CA  	MOVWF CompTempVar598
+03A5  3020  	MOVLW 0x20
+03A6  00CB  	MOVWF CompTempVar598+D'1'
+03A7  00CC  	MOVWF CompTempVar598+D'2'
+03A8  00CD  	MOVWF CompTempVar598+D'3'
+03A9  302D  	MOVLW 0x2D
+03AA  00CE  	MOVWF CompTempVar598+D'4'
+03AB  01CF  	CLRF CompTempVar598+D'5'
+03AC  3000  	MOVLW HIGH(CompTempVar598+D'0')
+03AD  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+03AE  30CA  	MOVLW LOW(CompTempVar598+D'0')
+03AF  00C8  	MOVWF ledPrint_00001_arg_s
+03B0  20EF  	CALL ledPrint_00001
+
+                ledSetDigits(iAttenuateR, 5);
+03B1  0835  	MOVF gbl_iAttenuateR, W
+03B2  00C8  	MOVWF ledSetDigi_0001B_arg_iValue
+03B3  3005  	MOVLW 0x05
+03B4  00C9  	MOVWF ledSetDigi_0001B_arg_iCol
+03B5  204D  	CALL ledSetDigi_0001B
+
+            } else {
+03B6  2BC9  	GOTO	label54
+03C9        label54
+
+                ledPrint("BAL   0"); // Balance
+03B7  3042  	MOVLW 0x42
+03B8  00CA  	MOVWF CompTempVar600
+03B9  3041  	MOVLW 0x41
+03BA  00CB  	MOVWF CompTempVar600+D'1'
+03BB  304C  	MOVLW 0x4C
+03BC  00CC  	MOVWF CompTempVar600+D'2'
+03BD  3020  	MOVLW 0x20
+03BE  00CD  	MOVWF CompTempVar600+D'3'
+03BF  00CE  	MOVWF CompTempVar600+D'4'
+03C0  00CF  	MOVWF CompTempVar600+D'5'
+03C1  3030  	MOVLW 0x30
+03C2  00D0  	MOVWF CompTempVar600+D'6'
+03C3  01D1  	CLRF CompTempVar600+D'7'
+03C4  3000  	MOVLW HIGH(CompTempVar600+D'0')
+03C5  00C9  	MOVWF ledPrint_00001_arg_s+D'1'
+03C6  30CA  	MOVLW LOW(CompTempVar600+D'0')
+03C7  00C8  	MOVWF ledPrint_00001_arg_s
+03C8  20EF  	CALL ledPrint_00001
+
+            }
+            break;
+    }
+    ledChar(7, 'd'); 
+03C9  3007  	MOVLW 0x07
+03CA  00D3  	MOVWF ledChar_00000_arg_iCol
+03CB  3064  	MOVLW 0x64
+03CC  00D4  	MOVWF ledChar_00000_arg_iChar
+03CD  2035  	CALL ledChar_00000
+
+    // Write Result to LED display
+    ledWrite();
+03CE  20B9  	CALL ledWrite_00000
+
+}
+03CF  0008  	RETURN
+
+
+char functionValueRaise(char iValue) {
+
+    if (iValue == 7) // if flat, adjust to the 2dB position
+032E  0845  	MOVF functionVa_00026_arg_iValue, W
+032F  3A07  	XORLW 0x07
+0330  1D03  	BTFSS STATUS,Z
+0331  2B35  	GOTO	label45
+0335        label45
+
+        iValue = 14;
+0332  300E  	MOVLW 0x0E
+0333  00C5  	MOVWF functionVa_00026_arg_iValue
+
+    else if (iValue > 8) // if boost, adjust to the next 2dB position (minus), stop at 8
+0334  2B3F  	GOTO	label47
+0335  0845  	MOVF functionVa_00026_arg_iValue, W
+0336  3C08  	SUBLW 0x08
+0337  1803  	BTFSC STATUS,C
+0338  2B3B  	GOTO	label46
+033B        label46
+
+        iValue--;
+0339  03C5  	DECF functionVa_00026_arg_iValue, F
+
+    else if (iValue < 7) // if cut, adjust to the next -2dB position (plus)
+033A  2B3F  	GOTO	label47
+033B  3007  	MOVLW 0x07
+033C  0245  	SUBWF functionVa_00026_arg_iValue, W
+033D  1C03  	BTFSS STATUS,C
+
+        iValue++;
+033E  0AC5  	INCF functionVa_00026_arg_iValue, F
+033F        label47
+
+    return iValue;
+033F  0845  	MOVF functionVa_00026_arg_iValue, W
+0340  00C6  	MOVWF CompTempVarRet602
+
+}
+0341  0008  	RETURN
+
+
+char functionValueLower(char iValue) {
+
+    if (iValue == 14) // if 2dB boost, adjust to the flat position
+031B  0845  	MOVF functionVa_00027_arg_iValue, W
+031C  3A0E  	XORLW 0x0E
+031D  1D03  	BTFSS STATUS,Z
+031E  2B22  	GOTO	label42
+0322        label42
+
+        iValue = 7;
+031F  3007  	MOVLW 0x07
+0320  00C5  	MOVWF functionVa_00027_arg_iValue
+
+    else if (iValue > 7) // if boost, adjust to the next -2dB position (plus)
+0321  2B2B  	GOTO	label44
+0322  0845  	MOVF functionVa_00027_arg_iValue, W
+0323  3C07  	SUBLW 0x07
+0324  1803  	BTFSC STATUS,C
+0325  2B28  	GOTO	label43
+0328        label43
+
+        iValue++;
+0326  0AC5  	INCF functionVa_00027_arg_iValue, F
+
+    else if (iValue != 0) // if cut, adjust to the next 2dB position (negative), stop at 0
+0327  2B2B  	GOTO	label44
+0328  08C5  	MOVF functionVa_00027_arg_iValue, F
+0329  1D03  	BTFSS STATUS,Z
+
+        iValue--;
+032A  03C5  	DECF functionVa_00027_arg_iValue, F
+032B        label44
+
+    return iValue;
+032B  0845  	MOVF functionVa_00027_arg_iValue, W
+032C  00C6  	MOVWF CompTempVarRet603
+
+}
+032D  0008  	RETURN
+
+
+void functionRaise() {
+
+    switch (iFunctionMode) {
+042D  2C50  	GOTO	label62
+0450        label62
+
+        case 1: // Bass
+041E  1683  	BSF STATUS, RP0
+041F  1303  	BCF STATUS, RP1
+0420  0839  	MOVF gbl_iFunctionMode, W
+0421  3A01  	XORLW 0x01
+0422  1903  	BTFSC STATUS,Z
+0423  2C2E  	GOTO	label56
+042E        label56
+
+            iMid = functionValueRaise(iMid);
+042E  0837  	MOVF gbl_iMid, W
+042F  00C5  	MOVWF functionVa_00026_arg_iValue
+0430  232E  	CALL functionVa_00026
+0431  0846  	MOVF CompTempVarRet602, W
+0432  00B7  	MOVWF gbl_iMid
+
+            tda7439SetMid();
+0433  21DB  	CALL tda7439Set_00021
+
+            break;
+0434  2C50  	GOTO	label62
+
+        case 2: // Treble
+0424  3A03  	XORLW 0x03
+0425  1903  	BTFSC STATUS,Z
+0426  2C35  	GOTO	label57
+0435        label57
+
+            iTreble = functionValueRaise(iTreble);
+0435  0838  	MOVF gbl_iTreble, W
+0436  00C5  	MOVWF functionVa_00026_arg_iValue
+0437  232E  	CALL functionVa_00026
+0438  0846  	MOVF CompTempVarRet602, W
+0439  00B8  	MOVWF gbl_iTreble
+
+            tda7439SetTreble();
+043A  21D3  	CALL tda7439Set_00022
+
+            break;
+043B  2C50  	GOTO	label62
+
+        case 3: // Lo Bass
+0427  3A01  	XORLW 0x01
+0428  1903  	BTFSC STATUS,Z
+0429  2C3C  	GOTO	label58
+043C        label58
+
+            iBass = functionValueRaise(iBass);
+043C  0836  	MOVF gbl_iBass, W
+043D  00C5  	MOVWF functionVa_00026_arg_iValue
+043E  232E  	CALL functionVa_00026
+043F  0846  	MOVF CompTempVarRet602, W
+0440  00B6  	MOVWF gbl_iBass
+
+            tda7439SetBass();
+0441  21E3  	CALL tda7439Set_00020
+
+            break;
+0442  2C50  	GOTO	label62
+
+        case 4: // Balance
+042A  3A07  	XORLW 0x07
+042B  1903  	BTFSC STATUS,Z
+042C  2C43  	GOTO	label59
+0443        label59
+
+            if (iAttenuateL == 0) {
+0443  08B4  	MOVF gbl_iAttenuateL, F
+0444  1D03  	BTFSS STATUS,Z
+0445  2C4E  	GOTO	label60
+044E        label60
+
+                // If left is zero, attentuate right
+                iAttenuateR++;
+0446  0AB5  	INCF gbl_iAttenuateR, F
+
+                if (iAttenuateR > 78)
+0447  0835  	MOVF gbl_iAttenuateR, W
+0448  3C4E  	SUBLW 0x4E
+0449  1803  	BTFSC STATUS,C
+044A  2C4F  	GOTO	label61
+
+                    iAttenuateR = 78;
+044B  304E  	MOVLW 0x4E
+044C  00B5  	MOVWF gbl_iAttenuateR
+
+            } else {
+044D  2C4F  	GOTO	label61
+044F        label61
+
+                // otherwise reduce attentuation on left
+                iAttenuateL--;
+044E  03B4  	DECF gbl_iAttenuateL, F
+
+            }
+            tda7439SetBalance();
+044F  21B7  	CALL tda7439Set_00023
+
+            break;
+    }
+    
+    functionDisplay();
+0450  2342  	CALL functionDi_00025
+
+}
+0451  0008  	RETURN
+
+
+void functionLower() {
+
+    switch (iFunctionMode) {
+0461  2C84  	GOTO	label69
+0484        label69
+
+        case 1: // Bass
+0452  1683  	BSF STATUS, RP0
+0453  1303  	BCF STATUS, RP1
+0454  0839  	MOVF gbl_iFunctionMode, W
+0455  3A01  	XORLW 0x01
+0456  1903  	BTFSC STATUS,Z
+0457  2C62  	GOTO	label63
+0462        label63
+
+            iMid = functionValueLower(iMid);
+0462  0837  	MOVF gbl_iMid, W
+0463  00C5  	MOVWF functionVa_00027_arg_iValue
+0464  231B  	CALL functionVa_00027
+0465  0846  	MOVF CompTempVarRet603, W
+0466  00B7  	MOVWF gbl_iMid
+
+            tda7439SetMid();
+0467  21DB  	CALL tda7439Set_00021
+
+            break;
+0468  2C84  	GOTO	label69
+
+        case 2: // Treble
+0458  3A03  	XORLW 0x03
+0459  1903  	BTFSC STATUS,Z
+045A  2C69  	GOTO	label64
+0469        label64
+
+            iTreble = functionValueLower(iTreble);
+0469  0838  	MOVF gbl_iTreble, W
+046A  00C5  	MOVWF functionVa_00027_arg_iValue
+046B  231B  	CALL functionVa_00027
+046C  0846  	MOVF CompTempVarRet603, W
+046D  00B8  	MOVWF gbl_iTreble
+
+            tda7439SetTreble();
+046E  21D3  	CALL tda7439Set_00022
+
+            break;
+046F  2C84  	GOTO	label69
+
+        case 3: // Lo Bass
+045B  3A01  	XORLW 0x01
+045C  1903  	BTFSC STATUS,Z
+045D  2C70  	GOTO	label65
+0470        label65
+
+            iBass = functionValueLower(iBass);
+0470  0836  	MOVF gbl_iBass, W
+0471  00C5  	MOVWF functionVa_00027_arg_iValue
+0472  231B  	CALL functionVa_00027
+0473  0846  	MOVF CompTempVarRet603, W
+0474  00B6  	MOVWF gbl_iBass
+
+            tda7439SetBass();
+0475  21E3  	CALL tda7439Set_00020
+
+            break;
+0476  2C84  	GOTO	label69
+
+        case 4: // Balance
+045E  3A07  	XORLW 0x07
+045F  1903  	BTFSC STATUS,Z
+0460  2C77  	GOTO	label66
+0477        label66
+
+            if (iAttenuateR == 0) {
+0477  08B5  	MOVF gbl_iAttenuateR, F
+0478  1D03  	BTFSS STATUS,Z
+0479  2C82  	GOTO	label67
+0482        label67
+
+                // If right is zero, attentuate left
+                iAttenuateL++;
+047A  0AB4  	INCF gbl_iAttenuateL, F
+
+                if (iAttenuateL > 78)
+047B  0834  	MOVF gbl_iAttenuateL, W
+047C  3C4E  	SUBLW 0x4E
+047D  1803  	BTFSC STATUS,C
+047E  2C83  	GOTO	label68
+
+                    iAttenuateL = 78;
+047F  304E  	MOVLW 0x4E
+0480  00B4  	MOVWF gbl_iAttenuateL
+
+            } else {
+0481  2C83  	GOTO	label68
+0483        label68
+
+                // otherwise reduce attentuation on right
+                iAttenuateR--;
+0482  03B5  	DECF gbl_iAttenuateR, F
+
+            }
+            tda7439SetBalance();
+0483  21B7  	CALL tda7439Set_00023
+
+            break;
+    }
+
+    functionDisplay();
+0484  2342  	CALL functionDi_00025
+
+}
+0485  0008  	RETURN
+
+
+void functionUp() {
+
+    iFunctionMode++;
+0413  1683  	BSF STATUS, RP0
+0414  1303  	BCF STATUS, RP1
+0415  0AB9  	INCF gbl_iFunctionMode, F
+
+    if (iFunctionMode > 4)
+0416  0839  	MOVF gbl_iFunctionMode, W
+0417  3C04  	SUBLW 0x04
+0418  1803  	BTFSC STATUS,C
+0419  2C1C  	GOTO	label55
+041C        label55
+
+        iFunctionMode = 1;
+041A  3001  	MOVLW 0x01
+041B  00B9  	MOVWF gbl_iFunctionMode
+
+    functionDisplay();
+041C  2342  	CALL functionDi_00025
+
+}
+041D  0008  	RETURN
+
+
+void functionDown() {
+
+    iFunctionMode--;
+0486  1683  	BSF STATUS, RP0
+0487  1303  	BCF STATUS, RP1
+0488  03B9  	DECF gbl_iFunctionMode, F
+
+    if (iFunctionMode < 1)
+0489  3001  	MOVLW 0x01
+048A  0239  	SUBWF gbl_iFunctionMode, W
+048B  1803  	BTFSC STATUS,C
+048C  2C8F  	GOTO	label70
+048F        label70
+
+        iFunctionMode = 4;
+048D  3004  	MOVLW 0x04
+048E  00B9  	MOVWF gbl_iFunctionMode
+
+    functionDisplay();
+048F  2342  	CALL functionDi_00025
+
+}
+0490  0008  	RETURN
+
+
+/***********************************************************************************
+  Read and process remote control RC5 commands
+************************************************************************************/
+void rc5Process() {
+
+    IR_LED = 0; // switch off IR LED
+0526  1283  	BCF STATUS, RP0
+0527  1303  	BCF STATUS, RP1
+0528  1086  	BCF gbl_portb,1
+
+    if (rc5_address == 0) { // Addresses above zero are not for this device
+0529  1683  	BSF STATUS, RP0
+052A  08C3  	MOVF gbl_rc5_address, F
+052B  1D03  	BTFSS STATUS,Z
+
+        // Process commands
+        if (iPower) { // Don't process the following if power is off
+052D  08AE  	MOVF gbl_iPower, F
+052E  1903  	BTFSC STATUS,Z
+052F  2D83  	GOTO	label90
+
+            // Get current volume level
+            switch (rc5_command) {
+0540  2D83  	GOTO	label90
+
+                // For each command, cause the correct action 
+                case 13: // Mute (13 / 0x0D / D)
+0530  0844  	MOVF gbl_rc5_command, W
+0531  3A0D  	XORLW 0x0D
+0532  1903  	BTFSC STATUS,Z
+0533  2D41  	GOTO	label78
+0541        label78
+
+                    if (rc5_flickBitOld != rc5_flickBit) { // Prevent repeated muting when holding the button
+0541  0841  	MOVF gbl_rc5_flickBit, W
+0542  0642  	XORWF gbl_rc5_flickBitOld, W
+0543  1903  	BTFSC STATUS,Z
+0544  2D50  	GOTO	label80
+0550        label80
+
+                        // reset mute held flag
+                        iMuteHeld = 0;
+0545  01B3  	CLRF gbl_iMuteHeld
+
+                        if (iFunctionMode == 0) {
+0546  08B9  	MOVF gbl_iFunctionMode, F
+0547  1D03  	BTFSS STATUS,Z
+0548  2D4C  	GOTO	label79
+054C        label79
+
+                            // reset timer
+                            timer1Reset();
+0549  2168  	CALL timer1Rese_00017
+
+                            // start call timer
+                            t1con.TMR1ON = 1;
+054A  1410  	BSF gbl_t1con,0
+
+                        } else {
+054B  2D83  	GOTO	label90
+
+                            // exit function mode
+                            iFunctionMode = 0;
+054C  01B9  	CLRF gbl_iFunctionMode
+
+                            showVolAndInput();
+054D  2223  	CALL showVolAnd_00019
+
+                            // turn off the timer
+                            timer1Reset();
+054E  2168  	CALL timer1Rese_00017
+
+                        }
+                    } else {
+054F  2D83  	GOTO	label90
+
+                        // Button held - this should reset timer1 before it interrupts, therefore avoiding processing the command until the button is released
+                        iMuteHeld++;
+0550  0AB3  	INCF gbl_iMuteHeld, F
+
+                        // Reset timer
+                        timer1Reset();
+0551  2168  	CALL timer1Rese_00017
+
+                        if (iMuteHeld > 14) {
+0552  1683  	BSF STATUS, RP0
+0553  0833  	MOVF gbl_iMuteHeld, W
+0554  3C0E  	SUBLW 0x0E
+0555  1803  	BTFSC STATUS,C
+0556  2D59  	GOTO	label81
+0559        label81
+
+                            // flag for entering function mode
+                            cTask.TASK_TIMER1_FUNC = 1;
+0557  172D  	BSF gbl_cTask,6
+
+                        } else {
+0558  2D83  	GOTO	label90
+
+                            // Turn on the timer again
+                            t1con.TMR1ON = 1;
+0559  1283  	BCF STATUS, RP0
+055A  1410  	BSF gbl_t1con,0
+
+                        }
+                    }
+                    break;
+055B  2D83  	GOTO	label90
+
+                case 16: // Volume up (16 / 0x10 / E)
+0534  3A1D  	XORLW 0x1D
+0535  1903  	BTFSC STATUS,Z
+0536  2D5C  	GOTO	label82
+055C        label82
+
+                    if (iFunctionMode == 0) {
+055C  08B9  	MOVF gbl_iFunctionMode, F
+055D  1D03  	BTFSS STATUS,Z
+055E  2D62  	GOTO	label83
+0562        label83
+
+                        doVolumeUp();
+055F  2491  	CALL doVolumeUp_00000
+
+                        showVolAndInput();
+0560  2223  	CALL showVolAnd_00019
+
+                    } else {
+0561  2D83  	GOTO	label90
+
+                        functionRaise();
+0562  241E  	CALL functionRa_00028
+
+                    }
+                    break;
+0563  2D83  	GOTO	label90
+
+                case 17: // Volume down (17 / 0x11 / F)
+0537  3A01  	XORLW 0x01
+0538  1903  	BTFSC STATUS,Z
+0539  2D64  	GOTO	label84
+0564        label84
+
+                    if (iFunctionMode == 0) {
+0564  08B9  	MOVF gbl_iFunctionMode, F
+0565  1D03  	BTFSS STATUS,Z
+0566  2D6A  	GOTO	label85
+056A        label85
+
+                        doVolumeDown();
+0567  24A2  	CALL doVolumeDo_0001C
+
+                        showVolAndInput();
+0568  2223  	CALL showVolAnd_00019
+
+                    } else {
+0569  2D83  	GOTO	label90
+
+                        functionLower();
+056A  2452  	CALL functionLo_00029
+
+                    }
+                    break;
+056B  2D83  	GOTO	label90
+
+                case 32: // Input right (32 / 0x20 / V)
+053A  3A31  	XORLW 0x31
+053B  1903  	BTFSC STATUS,Z
+053C  2D6C  	GOTO	label86
+056C        label86
+
+                    if (rc5_flickBitOld != rc5_flickBit) { // Prevent repeated input changing when holding the button
+056C  0841  	MOVF gbl_rc5_flickBit, W
+056D  0642  	XORWF gbl_rc5_flickBitOld, W
+056E  1903  	BTFSC STATUS,Z
+056F  2D83  	GOTO	label90
+
+                        if (iFunctionMode == 0) {
+0570  08B9  	MOVF gbl_iFunctionMode, F
+0571  1D03  	BTFSS STATUS,Z
+0572  2D76  	GOTO	label87
+0576        label87
+
+                            doInputUp();
+0573  2512  	CALL doInputUp_00000
+
+                            showVolAndInput();
+0574  2223  	CALL showVolAnd_00019
+
+                        } else {
+0575  2D83  	GOTO	label90
+
+                            functionUp();
+0576  2413  	CALL functionUp_00000
+
+                        }
+                    }
+                    break;
+0577  2D83  	GOTO	label90
+
+                case 33: // Input left (33 / 0x21 / U)
+053D  3A01  	XORLW 0x01
+053E  1903  	BTFSC STATUS,Z
+053F  2D78  	GOTO	label88
+0578        label88
+
+                    if (rc5_flickBitOld != rc5_flickBit) { // Prevent repeated input changing when holding the button
+0578  0841  	MOVF gbl_rc5_flickBit, W
+0579  0642  	XORWF gbl_rc5_flickBitOld, W
+057A  1903  	BTFSC STATUS,Z
+057B  2D83  	GOTO	label90
+
+                        if (iFunctionMode == 0) {
+057C  08B9  	MOVF gbl_iFunctionMode, F
+057D  1D03  	BTFSS STATUS,Z
+057E  2D82  	GOTO	label89
+0582        label89
+
+                            doInputDown();
+057F  251D  	CALL doInputDow_0001E
+
+                            showVolAndInput();
+0580  2223  	CALL showVolAnd_00019
+
+                        } else {
+0581  2D83  	GOTO	label90
+0583        label90
+
+                            functionDown();
+0582  2486  	CALL functionDo_0002A
+
+                        }
+                    }
+                    break;
+            }
+        }
+        // Process power button regardless of power state
+        if (rc5_command == 12) { // Power (12 / 0x0C / A)
+0583  1683  	BSF STATUS, RP0
+0584  0844  	MOVF gbl_rc5_command, W
+0585  3A0C  	XORLW 0x0C
+0586  1D03  	BTFSS STATUS,Z
+0587  2D8E  	GOTO	label91
+
+            if (rc5_flickBitOld != rc5_flickBit) { // Prevent repeated power when holding the button
+0588  0841  	MOVF gbl_rc5_flickBit, W
+0589  0642  	XORWF gbl_rc5_flickBitOld, W
+058A  1903  	BTFSC STATUS,Z
+058B  2D8E  	GOTO	label91
+058E        label91
+
+                // exit function mode
+                iFunctionMode = 0;
+058C  01B9  	CLRF gbl_iFunctionMode
+
+                //iPowerExternal = 0; v1.1 removed this to allow forced power off
+                // power up or down
+                doPower();
+058D  24AF  	CALL doPower_00000
+
+            }
+        }
+        rc5_flickBitOld = rc5_flickBit;
+058E  1683  	BSF STATUS, RP0
+058F  0841  	MOVF gbl_rc5_flickBit, W
+0590  00C2  	MOVWF gbl_rc5_flickBitOld
+
+    }
+}
+052C  0008  	RETURN
+0591  0008  	RETURN
+
+
+/***********************************************************************************
+  MAIN PROGRAM
+************************************************************************************/
+void main() {
+
+    initialise();
+05EC  2592  	CALL initialise_00000
+
+    
+    while (1) {
+05ED        label94
+0628  2DED  	GOTO	label94
+
+        // Task scheduler
+        // If there are tasks to be performed, find out the
+        // most recent task from the array and execute it
+        while (cTask > 0) {
+05ED  1683  	BSF STATUS, RP0
+05EE  082D  	MOVF gbl_cTask, W
+05EF  3C00  	SUBLW 0x00
+05F0  1803  	BTFSC STATUS,C
+05F1  2E06  	GOTO	label97
+0605  2DED  	GOTO	label94
+0606        label97
+
+            if (cTask.TASK_INT_EXT0) {
+05F2  1C2D  	BTFSS gbl_cTask,0
+05F3  2DF6  	GOTO	label95
+05F6        label95
+
+                rc5Process(); // IR sensor received a signal
+05F4  2526  	CALL rc5Process_00000
+
+                cTask.TASK_INT_EXT0 = 0;
+05F5  102D  	BCF gbl_cTask,0
+
+            } 
+            if (cTask.TASK_TIMER1_MUTE) {
+05F6  1EAD  	BTFSS gbl_cTask,5
+05F7  2DFD  	GOTO	label96
+05FD        label96
+
+                // Mute and update display
+                doMute();
+05F8  25E1  	CALL doMute_00000
+
+                showVolAndInput();
+05F9  2223  	CALL showVolAnd_00019
+
+                // turn off the timer
+                timer1Reset();
+05FA  2168  	CALL timer1Rese_00017
+
+                cTask.TASK_TIMER1_MUTE = 0;
+05FB  1683  	BSF STATUS, RP0
+05FC  12AD  	BCF gbl_cTask,5
+
+            }
+            if (cTask.TASK_TIMER1_FUNC) {
+05FD  1F2D  	BTFSS gbl_cTask,6
+05FE  2DED  	GOTO	label94
+
+                // enter function mode
+                iFunctionMode = 1;
+05FF  3001  	MOVLW 0x01
+0600  00B9  	MOVWF gbl_iFunctionMode
+
+                // Show first function
+                functionDisplay();
+0601  2342  	CALL functionDi_00025
+
+                // turn off the timer
+                timer1Reset();
+0602  2168  	CALL timer1Rese_00017
+
+                cTask.TASK_TIMER1_FUNC = 0;
+0603  1683  	BSF STATUS, RP0
+0604  132D  	BCF gbl_cTask,6
+
+            }
+        }
+        // Poll for EXT_POWER
+        // if EXT_POWER is low (USB trigger high), iPower is off
+        // v1.1 and not previously powered on externally
+        if (!EXT_POWER && !iPower && !iPowerExternal) {
+0606  1283  	BCF STATUS, RP0
+0607  1906  	BTFSC gbl_portb,2
+0608  2E15  	GOTO	label98
+0609  1683  	BSF STATUS, RP0
+060A  08AE  	MOVF gbl_iPower, F
+060B  1D03  	BTFSS STATUS,Z
+060C  2E15  	GOTO	label98
+060D  08AF  	MOVF gbl_iPowerExternal, F
+060E  1D03  	BTFSS STATUS,Z
+060F  2E15  	GOTO	label98
+0615        label98
+
+            // Powered on by external appliance
+            iPowerExternal = 1;
+0610  3001  	MOVLW 0x01
+0611  00AF  	MOVWF gbl_iPowerExternal
+
+            // set the input to the trigged input (input 1) = in2 on the tda7439
+            iActiveInput = 2;
+0612  3002  	MOVLW 0x02
+0613  00B0  	MOVWF gbl_iActiveInput
+
+            doPower();
+0614  24AF  	CALL doPower_00000
+
+        }
+        // if EXT_POWER is high (USB trigger low), iPower is on, and was powered on externally
+        // ..then power off
+        if (EXT_POWER && iPower && iPowerExternal) {
+0615  1283  	BCF STATUS, RP0
+0616  1D06  	BTFSS gbl_portb,2
+0617  2E20  	GOTO	label99
+0618  1683  	BSF STATUS, RP0
+0619  08AE  	MOVF gbl_iPower, F
+061A  1903  	BTFSC STATUS,Z
+061B  2E20  	GOTO	label99
+061C  08AF  	MOVF gbl_iPowerExternal, F
+061D  1903  	BTFSC STATUS,Z
+061E  2E20  	GOTO	label99
+0620        label99
+
+            // Powered off by external appliance
+            // don't power off if iPowerExternal is zero (i.e. powered on by IR)
+            doPower();
+061F  24AF  	CALL doPower_00000
+
+        }
+        // v1.1 If no external power signal, and power is off anyway, reset the iPowerExternal indicator
+        if (EXT_POWER && !iPower) {
+0620  1283  	BCF STATUS, RP0
+0621  1D06  	BTFSS gbl_portb,2
+0622  2DED  	GOTO	label94
+0623  1683  	BSF STATUS, RP0
+0624  08AE  	MOVF gbl_iPower, F
+0625  1D03  	BTFSS STATUS,Z
+0626  2DED  	GOTO	label94
+
+            iPowerExternal = 0;
+0627  01AF  	CLRF gbl_iPowerExternal
+
+        }
+    }
+}
+
+
+////////////////////////////////////////
+// Code with no source :-)
+////////////////////////////////////////
+0000  2E29  	GOTO	_startup
+
+0004  00FF  	MOVWF Int1Context
+0005  0E03  	SWAPF STATUS, W
+0006  1683  	BSF STATUS, RP0
+0007  1303  	BCF STATUS, RP1
+0008  00A8  	MOVWF Int1BContext
+0009  0E0A  	SWAPF PCLATH, W
+000A  00A9  	MOVWF Int1BContext+D'1'
+000B  0E04  	SWAPF FSR, W
+000C  00AA  	MOVWF Int1BContext+D'2'
+000D  118A  	BCF PCLATH,3
+000E  120A  	BCF PCLATH,4
+000F  2EE5  	GOTO	interrupt
+0010        delay_us_00000
+0010        ; { delay_us ; function begin
+0010  3003  	MOVLW 0x03
+0011  07CA  	ADDWF delay_us_00000_arg_del, F
+0012  0CCA  	RRF delay_us_00000_arg_del, F
+0013  0CCA  	RRF delay_us_00000_arg_del, F
+0014  307F  	MOVLW 0x7F
+0015  05CA  	ANDWF delay_us_00000_arg_del, F
+0016        label1
+0016  0000  	NOP
+0017  0BCA  	DECFSZ delay_us_00000_arg_del, F
+0018  2816  	GOTO	label1
+0019  0008  	RETURN
+001A        ; } delay_us function end
+
+001A        delay_ms_00000
+001A        ; { delay_ms ; function begin
+001A  08C6  	MOVF delay_ms_00000_arg_del, F
+001B  1D03  	BTFSS STATUS,Z
+001C  281E  	GOTO	label2
+001D  0008  	RETURN
+001E        label2
+001E  30F9  	MOVLW 0xF9
+001F        label3
+001F  3EFF  	ADDLW 0xFF
+0020  1D03  	BTFSS STATUS,Z
+0021  281F  	GOTO	label3
+0022  0000  	NOP
+0023  0BC6  	DECFSZ delay_ms_00000_arg_del, F
+0024  281E  	GOTO	label2
+0025  0008  	RETURN
+0026        ; } delay_ms function end
+
+0026        delay_s_00000
+0026        ; { delay_s ; function begin
+0026        label4
+0026  30FA  	MOVLW 0xFA
+0027  00C6  	MOVWF delay_ms_00000_arg_del
+0028  201A  	CALL delay_ms_00000
+0029  30FA  	MOVLW 0xFA
+002A  00C6  	MOVWF delay_ms_00000_arg_del
+002B  201A  	CALL delay_ms_00000
+002C  30FA  	MOVLW 0xFA
+002D  00C6  	MOVWF delay_ms_00000_arg_del
+002E  201A  	CALL delay_ms_00000
+002F  30FA  	MOVLW 0xFA
+0030  00C6  	MOVWF delay_ms_00000_arg_del
+0031  201A  	CALL delay_ms_00000
+0032  0BC5  	DECFSZ delay_s_00000_arg_del, F
+0033  2826  	GOTO	label4
+0034  0008  	RETURN
+0035        ; } delay_s function end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0629        _startup
+
+06E2  118A  	BCF PCLATH,3
+06E3  120A  	BCF PCLATH,4
+06E4  2DEC  	GOTO	main
+
+
+
+
+2007  3FB9  	DW 0x3FB9

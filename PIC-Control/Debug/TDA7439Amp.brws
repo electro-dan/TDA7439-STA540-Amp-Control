@@ -1,0 +1,452 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.4	//
+ACKDT	C:\Program Files\SourceBoost\Include\pic16F873.h	212;"	d
+ACKEN	C:\Program Files\SourceBoost\Include\pic16F873.h	213;"	d
+ACKSTAT	C:\Program Files\SourceBoost\Include\pic16F873.h	211;"	d
+ADCON0	C:\Program Files\SourceBoost\Include\pic16F873.h	52;"	d
+ADCON1	C:\Program Files\SourceBoost\Include\pic16F873.h	67;"	d
+ADCS0	C:\Program Files\SourceBoost\Include\pic16F873.h	171;"	d
+ADCS1	C:\Program Files\SourceBoost\Include\pic16F873.h	170;"	d
+ADDEN	C:\Program Files\SourceBoost\Include\pic16F873.h	155;"	d
+ADFM	C:\Program Files\SourceBoost\Include\pic16F873.h	254;"	d
+ADIE	C:\Program Files\SourceBoost\Include\pic16F873.h	191;"	d
+ADIF	C:\Program Files\SourceBoost\Include\pic16F873.h	96;"	d
+ADON	C:\Program Files\SourceBoost\Include\pic16F873.h	178;"	d
+ADRESH	C:\Program Files\SourceBoost\Include\pic16F873.h	51;"	d
+ADRESL	C:\Program Files\SourceBoost\Include\pic16F873.h	66;"	d
+BCLIE	C:\Program Files\SourceBoost\Include\pic16F873.h	201;"	d
+BCLIF	C:\Program Files\SourceBoost\Include\pic16F873.h	107;"	d
+BF	C:\Program Files\SourceBoost\Include\pic16F873.h	239;"	d
+BLUE	TDA7439Amp.h	35;"	d
+BRGH	C:\Program Files\SourceBoost\Include\pic16F873.h	248;"	d
+BYTE	C:\Program Files\SourceBoost\Include\novo.h	74;"	t
+C	C:\Program Files\SourceBoost\Include\pic16F873.h	83;"	d
+CCP1CON	C:\Program Files\SourceBoost\Include\pic16F873.h	44;"	d
+CCP1IE	C:\Program Files\SourceBoost\Include\pic16F873.h	195;"	d
+CCP1IF	C:\Program Files\SourceBoost\Include\pic16F873.h	100;"	d
+CCP1M0	C:\Program Files\SourceBoost\Include\pic16F873.h	145;"	d
+CCP1M1	C:\Program Files\SourceBoost\Include\pic16F873.h	144;"	d
+CCP1M2	C:\Program Files\SourceBoost\Include\pic16F873.h	143;"	d
+CCP1M3	C:\Program Files\SourceBoost\Include\pic16F873.h	142;"	d
+CCP1X	C:\Program Files\SourceBoost\Include\pic16F873.h	140;"	d
+CCP1Y	C:\Program Files\SourceBoost\Include\pic16F873.h	141;"	d
+CCP2CON	C:\Program Files\SourceBoost\Include\pic16F873.h	50;"	d
+CCP2IE	C:\Program Files\SourceBoost\Include\pic16F873.h	202;"	d
+CCP2IF	C:\Program Files\SourceBoost\Include\pic16F873.h	108;"	d
+CCP2M0	C:\Program Files\SourceBoost\Include\pic16F873.h	167;"	d
+CCP2M1	C:\Program Files\SourceBoost\Include\pic16F873.h	166;"	d
+CCP2M2	C:\Program Files\SourceBoost\Include\pic16F873.h	165;"	d
+CCP2M3	C:\Program Files\SourceBoost\Include\pic16F873.h	164;"	d
+CCP2X	C:\Program Files\SourceBoost\Include\pic16F873.h	162;"	d
+CCP2Y	C:\Program Files\SourceBoost\Include\pic16F873.h	163;"	d
+CCPR1H	C:\Program Files\SourceBoost\Include\pic16F873.h	43;"	d
+CCPR1L	C:\Program Files\SourceBoost\Include\pic16F873.h	42;"	d
+CCPR2H	C:\Program Files\SourceBoost\Include\pic16F873.h	49;"	d
+CCPR2L	C:\Program Files\SourceBoost\Include\pic16F873.h	48;"	d
+CHS0	C:\Program Files\SourceBoost\Include\pic16F873.h	174;"	d
+CHS1	C:\Program Files\SourceBoost\Include\pic16F873.h	173;"	d
+CHS2	C:\Program Files\SourceBoost\Include\pic16F873.h	172;"	d
+CKE	C:\Program Files\SourceBoost\Include\pic16F873.h	221;"	d
+CKP	C:\Program Files\SourceBoost\Include\pic16F873.h	133;"	d
+CMIF	C:\Program Files\SourceBoost\Include\pic16F873.h	105;"	d
+CREN	C:\Program Files\SourceBoost\Include\pic16F873.h	154;"	d
+CSRC	C:\Program Files\SourceBoost\Include\pic16F873.h	242;"	d
+D	C:\Program Files\SourceBoost\Include\pic16F873.h	222;"	d
+DATA_ADDRESS	C:\Program Files\SourceBoost\Include\pic16F873.h	227;"	d
+DC	C:\Program Files\SourceBoost\Include\pic16F873.h	82;"	d
+DELAY	TDA7439Amp.c	14;"	d	file:
+DELAY_SHORT	TDA7439Amp.c	15;"	d	file:
+DTASK_HANDLE	C:\Program Files\SourceBoost\Include\novo.h	76;"	t
+D_A	C:\Program Files\SourceBoost\Include\pic16F873.h	226;"	d
+EEADR	C:\Program Files\SourceBoost\Include\pic16F873.h	69;"	d
+EEADRH	C:\Program Files\SourceBoost\Include\pic16F873.h	71;"	d
+EECON1	C:\Program Files\SourceBoost\Include\pic16F873.h	72;"	d
+EECON2	C:\Program Files\SourceBoost\Include\pic16F873.h	73;"	d
+EEDATA	C:\Program Files\SourceBoost\Include\pic16F873.h	68;"	d
+EEDATH	C:\Program Files\SourceBoost\Include\pic16F873.h	70;"	d
+EEIE	C:\Program Files\SourceBoost\Include\pic16F873.h	200;"	d
+EEIF	C:\Program Files\SourceBoost\Include\pic16F873.h	106;"	d
+EEPGD	C:\Program Files\SourceBoost\Include\pic16F873.h	261;"	d
+EN_TASK_STATUS	C:\Program Files\SourceBoost\Include\novo.h	97;"	g
+EVENT_HANDLE	C:\Program Files\SourceBoost\Include\novo.h	77;"	t
+EVENT_NO_TIMEOUT	C:\Program Files\SourceBoost\Include\novo.h	95;"	d
+EVENT_QUEUE_HEAD_OFFSET	C:\Program Files\SourceBoost\Include\novo.h	88;"	d
+EXT_POWER	TDA7439Amp.h	38;"	d
+F	C:\Program Files\SourceBoost\Include\pic16F873.h	20;"	d
+FERR	C:\Program Files\SourceBoost\Include\pic16F873.h	156;"	d
+FLAG	C:\Program Files\SourceBoost\Include\novo.h	78;"	t
+FSR	C:\Program Files\SourceBoost\Include\boostcpic16.h	978;"	d
+FSR	C:\Program Files\SourceBoost\Include\pic16F873.h	27;"	d
+GCEN	C:\Program Files\SourceBoost\Include\pic16F873.h	210;"	d
+GIE	C:\Program Files\SourceBoost\Include\novo.h	61;"	d
+GIE	C:\Program Files\SourceBoost\Include\novo.h	68;"	d
+GIE	C:\Program Files\SourceBoost\Include\pic16F873.h	86;"	d
+GO	C:\Program Files\SourceBoost\Include\pic16F873.h	175;"	d
+GO_DONE	C:\Program Files\SourceBoost\Include\pic16F873.h	177;"	d
+GREEN	TDA7439Amp.h	34;"	d
+HIBYTE	C:\Program Files\SourceBoost\Include\boostc.h	45;"	d
+I2C_DATA	C:\Program Files\SourceBoost\Include\pic16F873.h	223;"	d
+I2C_READ	C:\Program Files\SourceBoost\Include\pic16F873.h	233;"	d
+I2C_START	C:\Program Files\SourceBoost\Include\pic16F873.h	231;"	d
+I2C_STOP	C:\Program Files\SourceBoost\Include\pic16F873.h	229;"	d
+INDF	C:\Program Files\SourceBoost\Include\boostcpic16.h	983;"	d
+INDF	C:\Program Files\SourceBoost\Include\pic16F873.h	23;"	d
+INTCON	C:\Program Files\SourceBoost\Include\pic16F873.h	32;"	d
+INTE	C:\Program Files\SourceBoost\Include\pic16F873.h	89;"	d
+INTEDG	C:\Program Files\SourceBoost\Include\pic16F873.h	182;"	d
+INTF	C:\Program Files\SourceBoost\Include\pic16F873.h	92;"	d
+IRP	C:\Program Files\SourceBoost\Include\pic16F873.h	76;"	d
+IR_LED	TDA7439Amp.h	32;"	d
+IR_PIN	TDA7439Amp.h	31;"	d
+IR_PR2_200US	TDA7439Amp.h	23;"	d
+IR_PR2_890US	TDA7439Amp.h	28;"	d
+LEDCLOCK	TDA7439Amp.h	40;"	d
+LEDDATA	TDA7439Amp.h	39;"	d
+LEDDELAYUS	TDA7439Amp.h	44;"	d
+LEDDISPON	TDA7439Amp.h	42;"	d
+LEDLATCH	TDA7439Amp.h	41;"	d
+LOBYTE	C:\Program Files\SourceBoost\Include\boostc.h	39;"	d
+MAKESHORT	C:\Program Files\SourceBoost\Include\boostc.h	33;"	d
+MAX_EQ_INDEX	C:\Program Files\SourceBoost\Include\novo.h	92;"	d
+NOT_A	C:\Program Files\SourceBoost\Include\pic16F873.h	224;"	d
+NOT_ADDRESS	C:\Program Files\SourceBoost\Include\pic16F873.h	225;"	d
+NOT_BO	C:\Program Files\SourceBoost\Include\pic16F873.h	206;"	d
+NOT_BOR	C:\Program Files\SourceBoost\Include\pic16F873.h	207;"	d
+NOT_DONE	C:\Program Files\SourceBoost\Include\pic16F873.h	176;"	d
+NOT_PD	C:\Program Files\SourceBoost\Include\pic16F873.h	80;"	d
+NOT_POR	C:\Program Files\SourceBoost\Include\pic16F873.h	205;"	d
+NOT_RBPU	C:\Program Files\SourceBoost\Include\pic16F873.h	181;"	d
+NOT_RC8	C:\Program Files\SourceBoost\Include\pic16F873.h	151;"	d
+NOT_T1SYNC	C:\Program Files\SourceBoost\Include\pic16F873.h	114;"	d
+NOT_TO	C:\Program Files\SourceBoost\Include\pic16F873.h	79;"	d
+NOT_TX8	C:\Program Files\SourceBoost\Include\pic16F873.h	244;"	d
+NOT_W	C:\Program Files\SourceBoost\Include\pic16F873.h	234;"	d
+NOT_WRITE	C:\Program Files\SourceBoost\Include\pic16F873.h	235;"	d
+NULL	C:\Program Files\SourceBoost\Include\boostc.h	18;"	d
+OERR	C:\Program Files\SourceBoost\Include\pic16F873.h	157;"	d
+OPTION_REG	C:\Program Files\SourceBoost\Include\pic16F873.h	53;"	d
+P	C:\Program Files\SourceBoost\Include\pic16F873.h	228;"	d
+PCFG0	C:\Program Files\SourceBoost\Include\pic16F873.h	258;"	d
+PCFG1	C:\Program Files\SourceBoost\Include\pic16F873.h	257;"	d
+PCFG2	C:\Program Files\SourceBoost\Include\pic16F873.h	256;"	d
+PCFG3	C:\Program Files\SourceBoost\Include\pic16F873.h	255;"	d
+PCL	C:\Program Files\SourceBoost\Include\pic16F873.h	25;"	d
+PCLATH	C:\Program Files\SourceBoost\Include\pic16F873.h	31;"	d
+PCON	C:\Program Files\SourceBoost\Include\pic16F873.h	59;"	d
+PEIE	C:\Program Files\SourceBoost\Include\pic16F873.h	87;"	d
+PEN	C:\Program Files\SourceBoost\Include\pic16F873.h	215;"	d
+PEND_EVENT_QUEUE_HEAD	C:\Program Files\SourceBoost\Include\novo.h	89;"	d
+PIE1	C:\Program Files\SourceBoost\Include\pic16F873.h	57;"	d
+PIE2	C:\Program Files\SourceBoost\Include\pic16F873.h	58;"	d
+PIR1	C:\Program Files\SourceBoost\Include\pic16F873.h	33;"	d
+PIR2	C:\Program Files\SourceBoost\Include\pic16F873.h	34;"	d
+PORTA	C:\Program Files\SourceBoost\Include\pic16F873.h	28;"	d
+PORTB	C:\Program Files\SourceBoost\Include\pic16F873.h	29;"	d
+PORTC	C:\Program Files\SourceBoost\Include\pic16F873.h	30;"	d
+PR2	C:\Program Files\SourceBoost\Include\pic16F873.h	61;"	d
+PS0	C:\Program Files\SourceBoost\Include\pic16F873.h	188;"	d
+PS1	C:\Program Files\SourceBoost\Include\pic16F873.h	187;"	d
+PS2	C:\Program Files\SourceBoost\Include\pic16F873.h	186;"	d
+PSA	C:\Program Files\SourceBoost\Include\pic16F873.h	185;"	d
+QUEUE_HEADS	C:\Program Files\SourceBoost\Include\novo.h	81;"	d
+R	C:\Program Files\SourceBoost\Include\pic16F873.h	232;"	d
+RBIE	C:\Program Files\SourceBoost\Include\pic16F873.h	90;"	d
+RBIF	C:\Program Files\SourceBoost\Include\pic16F873.h	93;"	d
+RC8_9	C:\Program Files\SourceBoost\Include\pic16F873.h	152;"	d
+RC9	C:\Program Files\SourceBoost\Include\pic16F873.h	150;"	d
+RCD8	C:\Program Files\SourceBoost\Include\pic16F873.h	159;"	d
+RCEN	C:\Program Files\SourceBoost\Include\pic16F873.h	214;"	d
+RCIE	C:\Program Files\SourceBoost\Include\pic16F873.h	192;"	d
+RCIF	C:\Program Files\SourceBoost\Include\pic16F873.h	97;"	d
+RCREG	C:\Program Files\SourceBoost\Include\pic16F873.h	47;"	d
+RCSTA	C:\Program Files\SourceBoost\Include\pic16F873.h	45;"	d
+RD	C:\Program Files\SourceBoost\Include\pic16F873.h	265;"	d
+READ_WRITE	C:\Program Files\SourceBoost\Include\pic16F873.h	237;"	d
+RED	TDA7439Amp.h	33;"	d
+RLY_BLUETOOTH	TDA7439Amp.h	37;"	d
+RLY_POWER	TDA7439Amp.h	36;"	d
+RP0	C:\Program Files\SourceBoost\Include\pic16F873.h	78;"	d
+RP1	C:\Program Files\SourceBoost\Include\pic16F873.h	77;"	d
+RSEN	C:\Program Files\SourceBoost\Include\pic16F873.h	216;"	d
+RUN_QUEUE_HEAD	C:\Program Files\SourceBoost\Include\novo.h	82;"	d
+RX9	C:\Program Files\SourceBoost\Include\pic16F873.h	149;"	d
+RX9D	C:\Program Files\SourceBoost\Include\pic16F873.h	158;"	d
+R_W	C:\Program Files\SourceBoost\Include\pic16F873.h	236;"	d
+S	C:\Program Files\SourceBoost\Include\pic16F873.h	230;"	d
+SEN	C:\Program Files\SourceBoost\Include\pic16F873.h	217;"	d
+SLEEP_QUEUE_HEAD	C:\Program Files\SourceBoost\Include\novo.h	83;"	d
+SMP	C:\Program Files\SourceBoost\Include\pic16F873.h	220;"	d
+SPBRG	C:\Program Files\SourceBoost\Include\pic16F873.h	65;"	d
+SPEN	C:\Program Files\SourceBoost\Include\pic16F873.h	148;"	d
+SREN	C:\Program Files\SourceBoost\Include\pic16F873.h	153;"	d
+SSPADD	C:\Program Files\SourceBoost\Include\pic16F873.h	62;"	d
+SSPBUF	C:\Program Files\SourceBoost\Include\pic16F873.h	40;"	d
+SSPCON	C:\Program Files\SourceBoost\Include\pic16F873.h	41;"	d
+SSPCON2	C:\Program Files\SourceBoost\Include\pic16F873.h	60;"	d
+SSPEN	C:\Program Files\SourceBoost\Include\pic16F873.h	132;"	d
+SSPIE	C:\Program Files\SourceBoost\Include\pic16F873.h	194;"	d
+SSPIF	C:\Program Files\SourceBoost\Include\pic16F873.h	99;"	d
+SSPM0	C:\Program Files\SourceBoost\Include\pic16F873.h	137;"	d
+SSPM1	C:\Program Files\SourceBoost\Include\pic16F873.h	136;"	d
+SSPM2	C:\Program Files\SourceBoost\Include\pic16F873.h	135;"	d
+SSPM3	C:\Program Files\SourceBoost\Include\pic16F873.h	134;"	d
+SSPOV	C:\Program Files\SourceBoost\Include\pic16F873.h	131;"	d
+SSPSTAT	C:\Program Files\SourceBoost\Include\pic16F873.h	63;"	d
+STATUS	C:\Program Files\SourceBoost\Include\pic16F873.h	26;"	d
+SYNC	C:\Program Files\SourceBoost\Include\pic16F873.h	247;"	d
+Scheduler	C:\Program Files\SourceBoost\Include\novo.h	154;"	t
+SysCreateTask	C:\Program Files\SourceBoost\Include\novo.h	186;"	d
+SysCriticalSectionBegin	C:\Program Files\SourceBoost\Include\novo.h	158;"	d
+SysCriticalSectionEnd	C:\Program Files\SourceBoost\Include\novo.h	162;"	d
+SysGetPriority	C:\Program Files\SourceBoost\Include\novo.h	204;"	d
+SysGetTaskStatus	C:\Program Files\SourceBoost\Include\novo.h	192;"	d
+SysReadSemaphore	C:\Program Files\SourceBoost\Include\novo.h	224;"	f
+SysSignalBinarySemaphore	C:\Program Files\SourceBoost\Include\novo.h	260;"	d
+SysSignalSemaphore	C:\Program Files\SourceBoost\Include\novo.h	217;"	d
+SysSignalSemaphoreIsr	C:\Program Files\SourceBoost\Include\novo.h	212;"	d
+SysWaitBinarySemaphore	C:\Program Files\SourceBoost\Include\novo.h	261;"	d
+SysWaitTimedOut	C:\Program Files\SourceBoost\Include\novo.h	245;"	d
+Sys_Sleep	C:\Program Files\SourceBoost\Include\novo.h	247;"	d
+Sys_StopTask	C:\Program Files\SourceBoost\Include\novo.h	194;"	d
+Sys_WaitSemaphore	C:\Program Files\SourceBoost\Include\novo.h	231;"	d
+T0CS	C:\Program Files\SourceBoost\Include\pic16F873.h	183;"	d
+T0IE	C:\Program Files\SourceBoost\Include\pic16F873.h	88;"	d
+T0IF	C:\Program Files\SourceBoost\Include\pic16F873.h	91;"	d
+T0SE	C:\Program Files\SourceBoost\Include\pic16F873.h	184;"	d
+T1CKPS0	C:\Program Files\SourceBoost\Include\pic16F873.h	112;"	d
+T1CKPS1	C:\Program Files\SourceBoost\Include\pic16F873.h	111;"	d
+T1CON	C:\Program Files\SourceBoost\Include\pic16F873.h	37;"	d
+T1INSYNC	C:\Program Files\SourceBoost\Include\pic16F873.h	115;"	d
+T1OSCEN	C:\Program Files\SourceBoost\Include\pic16F873.h	113;"	d
+T1SYNC	C:\Program Files\SourceBoost\Include\pic16F873.h	116;"	d
+T2CKPS0	C:\Program Files\SourceBoost\Include\pic16F873.h	127;"	d
+T2CKPS1	C:\Program Files\SourceBoost\Include\pic16F873.h	126;"	d
+T2CON	C:\Program Files\SourceBoost\Include\pic16F873.h	39;"	d
+TASKS_LIMIT	TDA7439Amp.h	9;"	d
+TASK_HANDLE	C:\Program Files\SourceBoost\Include\novo.h	75;"	t
+TASK_INT_EXT0	TDA7439Amp.h	10;"	d
+TASK_INT_PORTB	TDA7439Amp.h	11;"	d
+TASK_TIMER1_FUNC	TDA7439Amp.h	13;"	d
+TASK_TIMER1_MUTE	TDA7439Amp.h	12;"	d
+TASK_TIMER1_RSTDISP	TDA7439Amp.h	14;"	d
+TMR0	C:\Program Files\SourceBoost\Include\pic16F873.h	24;"	d
+TMR1CS	C:\Program Files\SourceBoost\Include\pic16F873.h	117;"	d
+TMR1H	C:\Program Files\SourceBoost\Include\pic16F873.h	36;"	d
+TMR1IE	C:\Program Files\SourceBoost\Include\pic16F873.h	197;"	d
+TMR1IF	C:\Program Files\SourceBoost\Include\pic16F873.h	102;"	d
+TMR1L	C:\Program Files\SourceBoost\Include\pic16F873.h	35;"	d
+TMR1ON	C:\Program Files\SourceBoost\Include\pic16F873.h	118;"	d
+TMR2	C:\Program Files\SourceBoost\Include\pic16F873.h	38;"	d
+TMR2IE	C:\Program Files\SourceBoost\Include\pic16F873.h	196;"	d
+TMR2IF	C:\Program Files\SourceBoost\Include\pic16F873.h	101;"	d
+TMR2ON	C:\Program Files\SourceBoost\Include\pic16F873.h	125;"	d
+TOUTPS0	C:\Program Files\SourceBoost\Include\pic16F873.h	124;"	d
+TOUTPS1	C:\Program Files\SourceBoost\Include\pic16F873.h	123;"	d
+TOUTPS2	C:\Program Files\SourceBoost\Include\pic16F873.h	122;"	d
+TOUTPS3	C:\Program Files\SourceBoost\Include\pic16F873.h	121;"	d
+TRISA	C:\Program Files\SourceBoost\Include\pic16F873.h	54;"	d
+TRISB	C:\Program Files\SourceBoost\Include\pic16F873.h	55;"	d
+TRISC	C:\Program Files\SourceBoost\Include\pic16F873.h	56;"	d
+TRMT	C:\Program Files\SourceBoost\Include\pic16F873.h	249;"	d
+TS_EVENT_TIMEOUT	C:\Program Files\SourceBoost\Include\novo.h	103;"	e	enum:EN_TASK_STATUS
+TS_IN_EVENT_Q	C:\Program Files\SourceBoost\Include\novo.h	102;"	e	enum:EN_TASK_STATUS
+TS_IN_RUN_Q	C:\Program Files\SourceBoost\Include\novo.h	100;"	e	enum:EN_TASK_STATUS
+TS_IN_SLEEP_Q	C:\Program Files\SourceBoost\Include\novo.h	101;"	e	enum:EN_TASK_STATUS
+TS_IS_WAKING	C:\Program Files\SourceBoost\Include\novo.h	104;"	e	enum:EN_TASK_STATUS
+TS_NOT_STOPPED	C:\Program Files\SourceBoost\Include\novo.h	99;"	e	enum:EN_TASK_STATUS
+TX8_9	C:\Program Files\SourceBoost\Include\pic16F873.h	245;"	d
+TX9	C:\Program Files\SourceBoost\Include\pic16F873.h	243;"	d
+TX9D	C:\Program Files\SourceBoost\Include\pic16F873.h	250;"	d
+TXD8	C:\Program Files\SourceBoost\Include\pic16F873.h	251;"	d
+TXEN	C:\Program Files\SourceBoost\Include\pic16F873.h	246;"	d
+TXIE	C:\Program Files\SourceBoost\Include\pic16F873.h	193;"	d
+TXIF	C:\Program Files\SourceBoost\Include\pic16F873.h	98;"	d
+TXREG	C:\Program Files\SourceBoost\Include\pic16F873.h	46;"	d
+TXSTA	C:\Program Files\SourceBoost\Include\pic16F873.h	64;"	d
+UA	C:\Program Files\SourceBoost\Include\pic16F873.h	238;"	d
+W	C:\Program Files\SourceBoost\Include\pic16F873.h	19;"	d
+WCOL	C:\Program Files\SourceBoost\Include\pic16F873.h	130;"	d
+WR	C:\Program Files\SourceBoost\Include\pic16F873.h	264;"	d
+WREN	C:\Program Files\SourceBoost\Include\pic16F873.h	263;"	d
+WRERR	C:\Program Files\SourceBoost\Include\pic16F873.h	262;"	d
+Z	C:\Program Files\SourceBoost\Include\pic16F873.h	81;"	d
+_BODEN_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	286;"	d
+_BODEN_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	285;"	d
+_BOOSTC_H_	C:\Program Files\SourceBoost\Include\boostc.h	14;"	d
+_CONFIG	C:\Program Files\SourceBoost\Include\pic16F873.h	299;"	d
+_CPD_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	282;"	d
+_CPD_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	281;"	d
+_CP_ALL	C:\Program Files\SourceBoost\Include\pic16F873.h	273;"	d
+_CP_HALF	C:\Program Files\SourceBoost\Include\pic16F873.h	274;"	d
+_CP_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	276;"	d
+_CP_UPPER_256	C:\Program Files\SourceBoost\Include\pic16F873.h	275;"	d
+_DEBUG_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	278;"	d
+_DEBUG_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	277;"	d
+_EEPROM	C:\Program Files\SourceBoost\Include\pic16F873.h	306;"	d
+_HS_OSC	C:\Program Files\SourceBoost\Include\pic16F873.h	293;"	d
+_LP_OSC	C:\Program Files\SourceBoost\Include\pic16F873.h	291;"	d
+_LVP_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	284;"	d
+_LVP_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	283;"	d
+_NOVO_H_	C:\Program Files\SourceBoost\Include\novo.h	52;"	d
+_PIC16F873_H_	C:\Program Files\SourceBoost\Include\pic16F873.h	11;"	d
+_PWRTE_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	287;"	d
+_PWRTE_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	288;"	d
+_RC_OSC	C:\Program Files\SourceBoost\Include\pic16F873.h	294;"	d
+_SYSTEM_H_	C:\Program Files\SourceBoost\Include\system.h	10;"	d
+_Scheduler	C:\Program Files\SourceBoost\Include\novo.h	108;"	s
+_TDA7439AMP_H_	TDA7439Amp.h	2;"	d
+_WDT_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	290;"	d
+_WDT_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	289;"	d
+_WRT_ENABLE_OFF	C:\Program Files\SourceBoost\Include\pic16F873.h	280;"	d
+_WRT_ENABLE_ON	C:\Program Files\SourceBoost\Include\pic16F873.h	279;"	d
+_XT_OSC	C:\Program Files\SourceBoost\Include\pic16F873.h	292;"	d
+abs	C:\Program Files\SourceBoost\Include\boostc.h	29;"	d
+adcon0	C:\Program Files\SourceBoost\Include\pic16F873.h	337;"	v
+adcon1	C:\Program Files\SourceBoost\Include\pic16F873.h	352;"	v
+adresh	C:\Program Files\SourceBoost\Include\pic16F873.h	336;"	v
+adresl	C:\Program Files\SourceBoost\Include\pic16F873.h	351;"	v
+cTask	TDA7439Amp.h	51;"	v
+ccp1con	C:\Program Files\SourceBoost\Include\pic16F873.h	329;"	v
+ccp2con	C:\Program Files\SourceBoost\Include\pic16F873.h	335;"	v
+ccpr1h	C:\Program Files\SourceBoost\Include\pic16F873.h	328;"	v
+ccpr1l	C:\Program Files\SourceBoost\Include\pic16F873.h	327;"	v
+ccpr2h	C:\Program Files\SourceBoost\Include\pic16F873.h	334;"	v
+ccpr2l	C:\Program Files\SourceBoost\Include\pic16F873.h	333;"	v
+clear_bit	C:\Program Files\SourceBoost\Include\boostc.h	22;"	d
+clear_wdt	C:\Program Files\SourceBoost\Include\boostc.h	64;"	f
+displayASCIItoSeg	TDA7439Amp.h	114;"	v
+doInputDown	TDA7439Amp.c	546;"	f
+doInputUp	TDA7439Amp.c	538;"	f
+doMute	TDA7439Amp.c	708;"	f
+doPower	TDA7439Amp.c	468;"	f
+doVolumeDown	TDA7439Amp.c	695;"	f
+doVolumeUp	TDA7439Amp.c	680;"	f
+eeadr	C:\Program Files\SourceBoost\Include\pic16F873.h	354;"	v
+eeadrh	C:\Program Files\SourceBoost\Include\pic16F873.h	356;"	v
+eecon1	C:\Program Files\SourceBoost\Include\pic16F873.h	357;"	v
+eecon2	C:\Program Files\SourceBoost\Include\pic16F873.h	358;"	v
+eedata	C:\Program Files\SourceBoost\Include\pic16F873.h	353;"	v
+eedath	C:\Program Files\SourceBoost\Include\pic16F873.h	355;"	v
+eepromRead	TDA7439Amp.c	300;"	f
+eepromWrite	TDA7439Amp.c	255;"	f
+fsr	C:\Program Files\SourceBoost\Include\boostcpic16.h	979;"	v
+fsr	C:\Program Files\SourceBoost\Include\pic16F873.h	312;"	v
+functionDisplay	TDA7439Amp.c	802;"	f
+functionDown	TDA7439Amp.c	922;"	f
+functionLower	TDA7439Amp.c	884;"	f
+functionRaise	TDA7439Amp.c	853;"	f
+functionUp	TDA7439Amp.c	915;"	f
+functionValueDisplay	TDA7439Amp.c	781;"	f
+functionValueLower	TDA7439Amp.c	843;"	f
+functionValueRaise	TDA7439Amp.c	833;"	f
+i2cStart	TDA7439Amp.c	570;"	f
+i2cStop	TDA7439Amp.c	576;"	f
+i2cWait	TDA7439Amp.c	559;"	f
+i2cWrite	TDA7439Amp.c	582;"	f
+iActiveInput	TDA7439Amp.h	54;"	v
+iAttenuateL	TDA7439Amp.h	59;"	v
+iAttenuateR	TDA7439Amp.h	60;"	v
+iBass	TDA7439Amp.h	61;"	v
+iFunctionMode	TDA7439Amp.h	65;"	v
+iMid	TDA7439Amp.h	62;"	v
+iMute	TDA7439Amp.h	57;"	v
+iMuteHeld	TDA7439Amp.h	58;"	v
+iPower	TDA7439Amp.h	52;"	v
+iPowerExternal	TDA7439Amp.h	53;"	v
+iTreble	TDA7439Amp.h	63;"	v
+iVolume	TDA7439Amp.h	55;"	v
+iVolumeAfterMute	TDA7439Amp.h	56;"	v
+indf	C:\Program Files\SourceBoost\Include\boostcpic16.h	984;"	v
+indf	C:\Program Files\SourceBoost\Include\pic16F873.h	308;"	v
+initialise	TDA7439Amp.c	26;"	f
+intcon	C:\Program Files\SourceBoost\Include\novo.h	60;"	v
+intcon	C:\Program Files\SourceBoost\Include\novo.h	67;"	v
+intcon	C:\Program Files\SourceBoost\Include\pic16F873.h	317;"	v
+interrupt	TDA7439Amp.c	111;"	f
+intfCounter	TDA7439Amp.h	258;"	v
+ledChar	TDA7439Amp.c	332;"	f
+ledData1	TDA7439Amp.h	67;"	v
+ledLatchDown	TDA7439Amp.c	435;"	f
+ledLatchUp	TDA7439Amp.c	442;"	f
+ledOff	TDA7439Amp.c	408;"	f
+ledOn	TDA7439Amp.c	390;"	f
+ledPrint	TDA7439Amp.c	318;"	f
+ledSendChar	TDA7439Amp.c	452;"	f
+ledSetDigits	TDA7439Amp.c	340;"	f
+ledSetup	TDA7439Amp.c	368;"	f
+ledTest	TDA7439Amp.c	361;"	f
+ledWrite	TDA7439Amp.c	420;"	f
+main	TDA7439Amp.c	1025;"	f
+nop	C:\Program Files\SourceBoost\Include\boostc.h	59;"	f
+option_reg	C:\Program Files\SourceBoost\Include\pic16F873.h	338;"	v
+pcl	C:\Program Files\SourceBoost\Include\pic16F873.h	310;"	v
+pclath	C:\Program Files\SourceBoost\Include\pic16F873.h	316;"	v
+pcon	C:\Program Files\SourceBoost\Include\pic16F873.h	344;"	v
+pie1	C:\Program Files\SourceBoost\Include\pic16F873.h	342;"	v
+pie2	C:\Program Files\SourceBoost\Include\pic16F873.h	343;"	v
+pir1	C:\Program Files\SourceBoost\Include\pic16F873.h	318;"	v
+pir2	C:\Program Files\SourceBoost\Include\pic16F873.h	319;"	v
+porta	C:\Program Files\SourceBoost\Include\pic16F873.h	313;"	v
+portb	C:\Program Files\SourceBoost\Include\pic16F873.h	314;"	v
+portc	C:\Program Files\SourceBoost\Include\pic16F873.h	315;"	v
+pr2	C:\Program Files\SourceBoost\Include\pic16F873.h	346;"	v
+rc5Process	TDA7439Amp.c	932;"	f
+rc5_Held	TDA7439Amp.h	259;"	v
+rc5_address	TDA7439Amp.h	275;"	v
+rc5_bitCount	TDA7439Amp.h	261;"	v
+rc5_captureBitState	TDA7439Amp.h	267;"	e
+rc5_command	TDA7439Amp.h	276;"	v
+rc5_currentState	TDA7439Amp.h	270;"	v
+rc5_flickBit	TDA7439Amp.h	273;"	v
+rc5_flickBitOld	TDA7439Amp.h	274;"	v
+rc5_idleState	TDA7439Amp.h	264;"	e
+rc5_initialWaitState	TDA7439Amp.h	265;"	e
+rc5_inputData	TDA7439Amp.h	260;"	v
+rc5_logicChange	TDA7439Amp.h	262;"	v
+rc5_logicInterval	TDA7439Amp.h	262;"	v
+rc5_pinState	TDA7439Amp.h	271;"	v
+rc5_startBitState	TDA7439Amp.h	266;"	e
+rcreg	C:\Program Files\SourceBoost\Include\pic16F873.h	332;"	v
+rcsta	C:\Program Files\SourceBoost\Include\pic16F873.h	330;"	v
+readData	TDA7439Amp.c	285;"	f
+reset	C:\Program Files\SourceBoost\Include\boostc.h	77;"	f
+reset	C:\Program Files\SourceBoost\Include\boostc.h	85;"	f
+saveData	TDA7439Amp.c	240;"	f
+set_bit	C:\Program Files\SourceBoost\Include\boostc.h	23;"	d
+showVolAndInput	TDA7439Amp.c	722;"	f
+sleep	C:\Program Files\SourceBoost\Include\boostc.h	69;"	f
+spbrg	C:\Program Files\SourceBoost\Include\pic16F873.h	350;"	v
+sspadd	C:\Program Files\SourceBoost\Include\pic16F873.h	347;"	v
+sspbuf	C:\Program Files\SourceBoost\Include\pic16F873.h	325;"	v
+sspcon	C:\Program Files\SourceBoost\Include\pic16F873.h	326;"	v
+sspcon2	C:\Program Files\SourceBoost\Include\pic16F873.h	345;"	v
+sspstat	C:\Program Files\SourceBoost\Include\pic16F873.h	348;"	v
+status	C:\Program Files\SourceBoost\Include\pic16F873.h	311;"	v
+t1con	C:\Program Files\SourceBoost\Include\pic16F873.h	322;"	v
+t2con	C:\Program Files\SourceBoost\Include\pic16F873.h	324;"	v
+tda7439SetBalance	TDA7439Amp.c	636;"	f
+tda7439SetBass	TDA7439Amp.c	624;"	f
+tda7439SetInput	TDA7439Amp.c	614;"	f
+tda7439SetMid	TDA7439Amp.c	628;"	f
+tda7439SetTreble	TDA7439Amp.c	632;"	f
+tda7439SetVolume	TDA7439Amp.c	607;"	f
+tda7439Write	TDA7439Amp.c	599;"	f
+tda7439WriteAll	TDA7439Amp.c	653;"	f
+tda7439_addr	TDA7439Amp.h	17;"	d
+tda7439_gains	TDA7439Amp.h	48;"	v
+test_bit	C:\Program Files\SourceBoost\Include\boostc.h	24;"	d
+timer1Reset	TDA7439Amp.c	230;"	f
+tmr0	C:\Program Files\SourceBoost\Include\pic16F873.h	309;"	v
+tmr1h	C:\Program Files\SourceBoost\Include\pic16F873.h	321;"	v
+tmr1l	C:\Program Files\SourceBoost\Include\pic16F873.h	320;"	v
+tmr2	C:\Program Files\SourceBoost\Include\pic16F873.h	323;"	v
+toggle_bit	C:\Program Files\SourceBoost\Include\boostc.h	25;"	d
+trisa	C:\Program Files\SourceBoost\Include\pic16F873.h	339;"	v
+trisb	C:\Program Files\SourceBoost\Include\pic16F873.h	340;"	v
+trisc	C:\Program Files\SourceBoost\Include\pic16F873.h	341;"	v
+txreg	C:\Program Files\SourceBoost\Include\pic16F873.h	331;"	v
+txsta	C:\Program Files\SourceBoost\Include\pic16F873.h	349;"	v
